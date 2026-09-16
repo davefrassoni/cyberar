@@ -1,5 +1,12 @@
-name: Verify CYBER.AR
-on: [push, pull_request]
+name: Verify and deploy CYBER.AR
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: cyberar-${{ github.ref }}
+  cancel-in-progress: false
 permissions:
   contents: read
 jobs:
@@ -37,6 +44,77 @@ jobs:
       - run: pip install -r backend/requirements.lock.txt
       - run: python backend/manage.py check
       - run: python backend/manage.py makemigrations --check --dry-run
-      - run: python backend/manage.py test tests -v 2
+      - run: python manage.py test tests -v 2
+        working-directory: backend
       - run: npm ci --prefix frontend
       - run: npm run build --prefix frontend
+      - name: Package verified release
+        run: |
+          tar --exclude='__pycache__' --exclude='*.pyc' --exclude='*.sqlite3' \
+            -czf release.tgz backend deploy frontend/dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release
+          path: release.tgz
+          retention-days: 7
+
+  deploy:
+    name: Deploy prod
+    needs: verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: prod
+      url: https://davefrassoni.com/cyberar/
+    env:
+      SSH_HOST: ${{ vars.SSH_HOST }}
+      SSH_PORT: ${{ vars.SSH_PORT }}
+      SSH_USER: ${{ vars.SSH_USER }}
+      RELEASE_ID: ${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: release
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          : "${SSH_HOST:?Set prod variable SSH_HOST}"
+          : "${SSH_PORT:?Set prod variable SSH_PORT}"
+          : "${SSH_USER:?Set prod variable SSH_USER}"
+          : "${SSH_PRIVATE_KEY:?Set prod secret SSH_PRIVATE_KEY}"
+          : "${SSH_KNOWN_HOSTS:?Set prod secret SSH_KNOWN_HOSTS}"
+          [[ "$SSH_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]]
+          [[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]]
+          [[ "$SSH_USER" == root ]]
+          install -d -m 0700 ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/cyberar_deploy
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 0600 ~/.ssh/cyberar_deploy ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host cyberar-prod
+            HostName $SSH_HOST
+            Port $SSH_PORT
+            User $SSH_USER
+            IdentityFile ~/.ssh/cyberar_deploy
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking yes
+            ConnectTimeout 15
+          EOF
+      - name: Upload and install verified release
+        run: |
+          set -euo pipefail
+          scp release.tgz "cyberar-prod:/var/tmp/cyberar-${RELEASE_ID}.tgz"
+          ssh cyberar-prod "bash -s -- '$RELEASE_ID'" < deploy/release.sh
+      - name: Verify public site
+        run: |
+          curl --fail --silent --show-error --retry 3 --retry-all-errors \
+            --user-agent 'Mozilla/5.0 CYBER.AR deployment' \
+            https://davefrassoni.com/cyberar/ > /dev/null
+      - name: Remove runner SSH credentials
+        if: always()
+        run: rm -f ~/.ssh/cyberar_deploy ~/.ssh/config ~/.ssh/known_hosts

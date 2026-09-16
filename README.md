@@ -206,3 +206,35 @@ frontend/src/
 deploy/                  Nginx, systemd y aprovisionamiento
 docs/                    decisiones de arquitectura y alcance
 ```
+
+### Despliegue automático con GitHub Actions
+
+El workflow `.github/workflows/ci.yml` verifica Django, migraciones, pruebas con
+PostgreSQL y el build del frontend. Después de un push a `main` (o una ejecución
+manual sobre `main`), publica ese mismo artefacto en el environment **`prod`**.
+Los pull requests solo verifican. Los despliegues no se interrumpen entre sí.
+
+En GitHub → Settings → Environments → `prod`, cargar:
+
+| Tipo | Nombre | Valor |
+| --- | --- | --- |
+| Variable | `SSH_HOST` | `72.61.27.44` (IP del VPS, sin proxy HTTP) |
+| Variable | `SSH_PORT` | `182` |
+| Variable | `SSH_USER` | `root` (requerido por el instalador existente) |
+| Secret | `SSH_PRIVATE_KEY` | Clave privada SSH completa, sin passphrase, autorizada en el VPS |
+| Secret | `SSH_KNOWN_HOSTS` | Entrada verificada de la clave pública del servidor para `[72.61.27.44]:182` |
+
+Para obtener la entrada de host desde una conexión SSH ya confiable, ejecutar en
+el VPS `cat /etc/ssh/ssh_host_ed25519_key.pub` y anteponer
+`[72.61.27.44]:182 ` a la línea resultante. No es una clave privada.
+No usar `ssh-keyscan` sin verificar la identidad del servidor.
+
+El VPS debe estar provisionado, con `/etc/cyberar.env` existente, usuario `deploy`,
+PostgreSQL, Nginx, Python/venv y rsync. El workflow no ejecuta `provision.py`, no
+reemplaza ese archivo de configuración y no necesita las contraseñas de la app ni
+la base de datos en GitHub. Reinicia los dos servicios de CYBER.AR; puede haber
+una interrupción breve. Conserva assets anteriores para pestañas abiertas.
+
+Si el primer push ocurre antes de cargar la configuración, el job de deploy falla
+indicando qué valor falta, sin modificar el servidor. Una vez cargados los valores,
+usar Actions → Verify and deploy CYBER.AR → Run workflow sobre `main`.
