@@ -140,6 +140,7 @@ onMounted(bootstrap);
       <div v-if="store.stale" class="stale-banner" role="status">
         DATOS SIN ACTUALIZAR · Esperando conexión con el servidor
       </div>
+      <DemoControls :state="store.state" :busy="store.busy" />
       <div class="workspace">
         <TacticalMap :state="store.state" />
         <aside>
@@ -148,7 +149,7 @@ onMounted(bootstrap);
           /><AIPanel />
         </aside>
       </div>
-      <DemoControls :state="store.state" :busy="store.busy" /><EventLog
+      <EventLog
         :events="store.state.events"
       />
       <footer class="system-footer">

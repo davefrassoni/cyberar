@@ -240,8 +240,8 @@ p {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 345px;
   border-bottom: 1px solid var(--border);
-  min-height: 610px;
-  height: calc(100vh - 408px);
+  min-height: 320px;
+  height: clamp(320px, calc(100dvh - 380px), 850px);
   max-height: 850px;
 }
 .map-panel {
@@ -735,6 +735,11 @@ aside {
 }
 .demo-controls {
   display: flex;
+  flex-wrap: wrap;
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #090c0e;
   align-items: center;
   gap: 9px;
   padding: 17px 0;
@@ -747,6 +752,8 @@ aside {
   letter-spacing: 0.05em;
 }
 .demo-controls button {
+  min-height: 40px;
+  white-space: nowrap;
   font-size: 9px;
   padding: 10px 13px;
 }
@@ -773,14 +780,12 @@ aside {
   margin-left: 6px;
 }
 .red-team {
-  position: fixed;
-  bottom: 165px;
-  right: 30px;
-  width: 340px;
+  position: relative;
+  width: 100%;
   background: #11181c;
   border: 1px solid #75543e;
   box-shadow: 0 20px 60px #0009;
-  z-index: 5;
+  z-index: 1;
   padding: 19px;
 }
 .red-team .panel-heading {
@@ -1070,7 +1075,6 @@ aside {
 @media (min-width: 1700px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr) 410px;
-    min-height: 655px;
   }
   .side-panel {
     padding: 23px 27px;
@@ -1148,7 +1152,7 @@ aside {
     font-size: 10px;
   }
   .workspace {
-    height: calc(100vh - 424px);
+    height: clamp(320px, calc(100dvh - 424px), 850px);
   }
 }
 @media (max-width: 1150px) {
@@ -1326,10 +1330,7 @@ aside {
     margin-left: 0;
   }
   .red-team {
-    right: 14px;
-    width: calc(100% - 28px);
-    max-width: 340px;
-    bottom: 30px;
+    width: 100%;
   }
   .log-lines > div {
     gap: 10px;
@@ -1386,7 +1387,8 @@ aside {
 
 /* Keep the full instrument stack inside the desktop mission workspace. */
 @media (min-width: 801px) {
-  aside {
+  .workspace aside {
+    min-height: 0;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #34434b transparent;
@@ -1460,6 +1462,38 @@ aside {
   }
   .ai-footer {
     margin-top: 12px;
+  }
+}
+@media (min-width: 801px) and (max-height: 800px) {
+  .main-header {
+    height: 60px;
+  }
+  .mission-bar {
+    height: 86px;
+  }
+  .demo-controls {
+    padding: 10px 0;
+  }
+  .workspace {
+    height: clamp(280px, calc(100dvh - 320px), 480px);
+    min-height: 280px;
+  }
+}
+@media (max-width: 480px) {
+  .demo-controls {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 10px 0;
+  }
+  .speed-controls {
+    grid-column: 1 / -1;
+    margin-left: 0;
+  }
+  .speed-controls button {
+    flex: 1;
+  }
+  .demo-controls .red-button {
+    margin-left: 0;
   }
 }
 .base-ring {
