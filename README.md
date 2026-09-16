@@ -30,7 +30,7 @@ flowchart LR
 
 El servicio ASGI se despliega separado del Django WSGI principal. Nginx conserva el prefijo `/cyberar/`; API, cookies, WebSocket y assets lo utilizan. No necesita DRF, Leaflet, Celery ni servicios externos. Redis existe en el VPS pero esta etapa no lo necesita: cada conexión Channels lee el último estado persistido una vez por segundo y lo transmite al cliente; no hay polling HTTP del frontend. Esto es apropiado para pocas conexiones de demostración. Para escalar, reemplazar ese lector por grupos Channels con Redis.
 
-Un proceso independiente es dueño del reloj. Dos workers web o dos pestañas no aceleran la misión. `flock` impide dos procesos de reloj en el mismo host; PostgreSQL `select_for_update` serializa ticks y controles. No desplegar runners en múltiples hosts sin sustituir `flock` por un liderazgo distribuido. No se hace catch-up de tiempo durante una caída del proceso.
+Un proceso independiente es dueño del reloj. Dos workers web o dos pestañas no aceleran la misión. Un advisory lock de PostgreSQL, mantenido en una conexión dedicada, impide relojes simultáneos incluso en hosts diferentes; `select_for_update` serializa ticks y controles. Si se pierde la conexión de liderazgo, el proceso se detiene. En SQLite de desarrollo se utiliza `flock` en el mismo host. No se hace catch-up de tiempo durante una caída del proceso.
 
 Cada sesión tiene una misión propia. El logout la pausa; la expiración la pausa en el siguiente tick y revoca su socket. Un refresh recupera el último estado. Reset restablece el estado de dominio, velocidad, modo, eventos y snapshots iniciales; conserva el identificador de misión e incrementa `revision` para descartar mensajes viejos.
 
@@ -85,7 +85,7 @@ Para HMR, `npm run dev --prefix frontend` desde la raíz y abrir `http://localho
 | `CYBERAR_USER`, `CYBERAR_PASSWORD` | Credenciales verificadas solamente por el backend |
 | `CYBERAR_SESSION_SECONDS` | Duración de sesión, 7200 por defecto |
 | `CYBERAR_DEMO_DURATION` | Segundos de misión, 150 por defecto; mínimo 30 |
-| `CYBERAR_RUNNER_LOCK` | Ruta del lock local del reloj; systemd usa `/run/cyberar/simulator.lock` |
+| `CYBERAR_RUNNER_LOCK` | Ruta del lock local cuando se usa SQLite; PostgreSQL utiliza advisory lock |
 | `CYBERAR_DEMO_MODE` | Reservada; esta aplicación siempre es un simulador |
 | `CYBERAR_AI_ENABLED` | Reservada, mantener `false` en esta iteración |
 | `CYBERAR_AI_TIMEOUT` | Reservada para timeout del futuro cliente |
@@ -170,7 +170,7 @@ cd ..
 npm run build --prefix frontend
 ```
 
-Las pruebas cubren determinismo, avance acelerado, secuencia completa, transiciones inválidas, degradación/restauración, control manual, sesión, CSRF, permisos, aislamiento, rate limiting, cookies, pausa/reset, persistencia, WebSocket y revocación. No esperan los 150 segundos reales.
+Las pruebas cubren determinismo, avance acelerado, secuencia completa, transiciones inválidas, degradación/restauración, control manual, sesión, CSRF, permisos, aislamiento, rate limiting, cookies, pausa/reset, persistencia, WebSocket, revocación y exclusión/liberación del reloj por advisory lock (estas dos últimas requieren PostgreSQL). No esperan los 150 segundos reales.
 
 ## Despliegue
 

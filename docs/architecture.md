@@ -10,14 +10,14 @@ Repositorio CYBER.AR vacío, remoto `davefrassoni/cyberar`. Proyecto vecino `dav
 - Django sin DRF: seis endpoints pequeños no justifican otra dependencia.
 - SVG propio sin Leaflet: teatro ficticio, sin tiles externos, control de estética y cero dependencias de mapas.
 - Channels para conexiones autenticadas. La lectura interna a 1 Hz desde DB evita Redis para una demo pequeña y admite múltiples workers web. Migrar a publish/subscribe cuando la escala lo justifique.
-- Un reloj de servidor independiente: la UI no ejecuta la simulación. Lock de proceso y transacciones para evitar aceleración por múltiples pestañas.
+- Un reloj de servidor independiente: la UI no ejecuta la simulación. Advisory lock de PostgreSQL en conexión dedicada y transacciones para evitar relojes simultáneos o aceleración por múltiples pestañas.
 - Dos conceptos separados: fase de vuelo y degradación del enlace. La adaptación autónoma y su submáquina se implementan en la etapa 2.
 - No enviar jobs de prueba al broker compartido ni declarar que hay IA conectada. El panel muestra claramente el estado real de integración.
 
 ## Riesgos y límites
 
 - Las coordenadas, velocidades y distancias son ilustrativas; el tiempo de demo es comprimido.
-- El reloj tiene liderazgo por host; no escalar a varios hosts sin cambiar el lock.
+- PostgreSQL coordina un solo reloj por base. SQLite utiliza exclusión por archivo, limitada al mismo host.
 - SQLite sirve localmente; usar PostgreSQL en producción para bloqueo de filas.
 - En reinicio del proceso se continúa desde el último tick confirmado; no se adelanta el reloj por tiempo de caída.
 - Reset conserva ID y aumenta revision para rechazar frames anteriores. Los futuros jobs tendrán un ID de ejecución adicional.
