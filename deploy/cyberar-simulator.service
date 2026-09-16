@@ -1,0 +1,22 @@
+[Unit]
+Description=CYBER.AR authoritative simulation clock
+After=network.target postgresql.service
+
+[Service]
+User=deploy
+Group=www-data
+WorkingDirectory=/var/www/cyberar/backend
+EnvironmentFile=/etc/cyberar.env
+Environment=CYBERAR_RUNNER_LOCK=/run/cyberar/simulator.lock
+RuntimeDirectory=cyberar
+ExecStart=/var/www/cyberar/.venv/bin/python manage.py run_simulator
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
