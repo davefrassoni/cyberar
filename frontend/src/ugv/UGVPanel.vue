@@ -2,7 +2,7 @@
 import { computed } from 'vue';
 const props = defineProps({ ugv: Object });
 const sample = computed(() => props.ugv.detector.sample);
-const analysisLabel = computed(() => ({ IDLE: 'ESPERANDO EVIDENCIA', PENDING: 'ANÁLISIS PENDIENTE', SUBMITTING: 'JOB P1 EN CURSO', COMPLETED: 'ANÁLISIS COMPLETADO' })[props.ugv.analysis.status]);
+const analysisLabel = computed(() => ({ IDLE: 'ESPERANDO EVIDENCIA', PENDING: 'ANÁLISIS PENDIENTE', SUBMITTING: 'JOB P1 EN CURSO', REJECTED: 'RESPUESTA DESCARTADA', COMPLETED: 'ANÁLISIS COMPLETADO' })[props.ugv.analysis.status]);
 </script>
 <template>
   <section class="side-panel ugv-instruments">

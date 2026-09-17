@@ -26,7 +26,7 @@ SCHEMA = {"type": "object", "additionalProperties": False, "required": ["severit
 class DFAIClient:
     def submit(self, flight):
         payload = {"job_type": "prompt_json", "priority": 1, "idempotency_key": flight.key,
-                   "payload": {"messages": [{"role": "system", "content": "Analizá evidencia de una simulación software de UGV. Respondé únicamente JSON según el esquema, en español argentino. No ejecutás acciones. Una señal válida no necesariamente contiene información confiable."},
+                   "payload": {"kind": "cyberar_can_anomaly", "messages": [{"role": "system", "content": "Analizá evidencia de una simulación software de UGV. Respondé únicamente un objeto JSON con exactamente las propiedades del siguiente JSON Schema. assessment debe estar en español argentino; los enums deben conservar sus valores exactos. No agregues timestamp ni campos adicionales. No ejecutás acciones. Una señal válida no necesariamente contiene información confiable. JSON Schema: " + json.dumps(SCHEMA)},
                                              {"role": "user", "content": json.dumps(flight.snapshot)}],
                                "response_schema": SCHEMA, "temperature": 0, "num_predict": 500}}
         request = Request(settings.DF_AI_URL + "/api/ai/jobs/", data=json.dumps(payload).encode(), headers={
@@ -111,9 +111,12 @@ def callback(request):
         if len(request.body) > 16384: raise ValueError("Respuesta demasiado grande")
         body = json.loads(request.body)
         if not isinstance(body, dict) or body.get("job_type") != "prompt_json": raise ValueError("Tipo inválido")
-        result = parse_result(body.get("result"))
     except (ValueError, TypeError):
         return JsonResponse({"detail": "Respuesta inválida"}, status=400)
+    try:
+        result = parse_result(body.get("result"))
+    except (ValueError, TypeError):
+        result = None
     with transaction.atomic():
         flight = AIFlight.objects.select_for_update().filter(pk=1).first()
         if not flight or not flight.job_id or flight.job_id != body.get("job_id"):
@@ -123,7 +126,11 @@ def callback(request):
         ugv = live.state.get("ugv", {})
         if live.generation == flight.generation and ugv.get("incident") == flight.incident:
             try:
-                if ugv.get("untrusted"):
+                if result is None:
+                    if not ugv.get("untrusted"):
+                        ugv["analysis"].update(status="REJECTED", source="LOCAL", result=None)
+                    emit(live.state, "DF AI", "Respuesta descartada: esquema inválido · respaldo local activo")
+                elif ugv.get("untrusted"):
                     ugv["analysis"].update(status="COMPLETED", source="DF AI", result=result)
                     emit(live.state, "DF AI", "Análisis recibido · aislamiento local ya aplicado; sin nueva acción")
                 else:
@@ -140,4 +147,4 @@ def callback(request):
                 persist_events(live)
         flight.status = "DONE"
         flight.save(update_fields=["status"])
-    return JsonResponse({"accepted": True})
+    return JsonResponse({"accepted": result is not None})

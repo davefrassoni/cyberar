@@ -80,3 +80,16 @@ class AITests(TestCase):
     def test_schema_rejects_non_json_actions_and_nan(self):
         for result in [dict(RESULT, recommended_action='RUN_SHELL'), dict(RESULT, confidence=float('nan')), dict(RESULT, assessment=12)]:
             with self.assertRaises(ValueError): parse_result(result)
+
+    @patch('vehicles.ai.close_old_connections')
+    @patch('vehicles.ai.DFAIClient.submit')
+    def test_invalid_response_is_rejected_and_releases_completed_flight(self, submit, close):
+        submit.return_value = str(uuid.uuid4())
+        process()
+        response = self.callback(submit.return_value, {'status': 'ALERTA'})
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.json()['accepted'])
+        self.assertEqual(AIFlight.objects.get().status, 'DONE')
+        self.live.refresh_from_db()
+        self.assertFalse(self.live.state['ugv']['untrusted'])
+        self.assertEqual(self.live.state['ugv']['analysis']['status'], 'REJECTED')
