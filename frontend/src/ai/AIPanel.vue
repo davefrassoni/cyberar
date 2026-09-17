@@ -2,15 +2,15 @@
   <section class="side-panel ai-panel">
     <div class="panel-heading">
       <h3><span>04</span> DF AI</h3>
-      <span class="tiny">PRÓXIMA ETAPA</span>
+      <span class="tiny">ANÁLISIS UAV PENDIENTE</span>
     </div>
     <div class="ai-status">
       <span class="ai-symbol">⌘</span>
       <div>
         <strong>MOTOR LOCAL ACTIVO</strong>
         <p>
-          Escenario determinístico. Integración<br />con DF AI pendiente de
-          habilitación.
+          Comunicaciones UAV: escenario determinístico.
+          El análisis DF AI de anomalías CAN está en la pestaña UGV-01.
         </p>
       </div>
     </div>

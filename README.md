@@ -241,7 +241,8 @@ PostgreSQL y el build del frontend. Después de un push a `main` (o una ejecuci�
 manual sobre `main`), publica ese mismo artefacto en el environment **`prod`**.
 Los pull requests solo verifican. Los despliegues no se interrumpen entre sí.
 
-En GitHub → Settings → Environments → `prod`, cargar:
+En GitHub → Settings → Environments → `prod`, cargar (host, puerto y usuario
+también se aceptan como Secrets):
 
 | Tipo | Nombre | Valor |
 | --- | --- | --- |

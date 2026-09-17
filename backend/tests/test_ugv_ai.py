@@ -6,6 +6,7 @@ from django.utils import timezone
 from mission.models import AIFlight, Mission, MissionState, DemoScenario
 from simulation.engine import SimulationEngine
 from vehicles.ai import process, parse_result
+from vehicles.ugv import control
 
 RESULT = {'severity':'HIGH', 'assessment':'CAN contradice GPS e IMU.', 'suspected_source':'CAN_SPEED', 'confidence':.94, 'recommended_action':'ISOLATE_SIGNAL'}
 
@@ -43,6 +44,22 @@ class AITests(TestCase):
         self.live.generation += 1
         self.live.state = SimulationEngine().initial()
         self.live.save()
+        self.assertEqual(self.callback(submit.return_value).status_code, 200)
+        self.live.refresh_from_db()
+        self.assertFalse(self.live.state['ugv']['untrusted'])
+        self.assertEqual(self.live.state['ugv']['analysis']['status'], 'IDLE')
+
+    @patch('vehicles.ai.close_old_connections')
+    @patch('vehicles.ai.DFAIClient.submit')
+    def test_can_restoration_rejects_late_result_without_releasing_active_job(self, submit, close):
+        submit.return_value = str(uuid.uuid4())
+        process()
+        self.live.refresh_from_db()
+        control(self.live.state, 'can_restore')
+        self.live.save()
+        process()
+        self.assertEqual(submit.call_count, 1)
+        self.assertEqual(AIFlight.objects.get().status, 'WAITING')
         self.assertEqual(self.callback(submit.return_value).status_code, 200)
         self.live.refresh_from_db()
         self.assertFalse(self.live.state['ugv']['untrusted'])
