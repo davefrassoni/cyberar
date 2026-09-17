@@ -1513,3 +1513,45 @@ aside {
     animation: none;
   }
 }
+
+/* Ground asset: responsive vector scene and independent sensor evidence. */
+.asset-tabs, .can-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.asset-tabs .eyebrow { margin-right: 10px; }
+.asset-tabs button { min-height: 42px; }
+.asset-tabs small { margin-left: 12px; color: var(--green); font-size: 8px; }
+.can-controls button { min-height: 38px; font-size: 9px; }
+.ugv-view { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border); }
+.ground-scene { flex: 1; min-height: 170px; overflow: hidden; }
+.ground-scene > svg { width: 100%; height: 100%; display: block; }
+.ground-vehicle { transition: transform var(--travel-duration, 1s) linear; }
+.ugv-radar.moving { animation: radar-breath 3s ease-in-out infinite; }
+.sensor-history { padding: 8px 18px 0; border-top: 1px solid var(--border); }
+.sensor-history svg { width: 100%; height: 90px; display: block; }
+.history-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 8px; color: #8eaa9b; }
+.history-heading i { display: inline-block; width: 12px; height: 2px; margin: 0 4px 3px 10px; background: #8dd4bd; }
+.history-heading .imu-key { background: #86b9ef; }.history-heading .can-key { background: #fa8855; }
+.ugv-motto { padding: 10px 18px; color: #9db6ac; font-size: 10px; line-height: 1.6; }
+.asset-status { font-size: 8px; color: var(--green); text-align: right; }
+.warning, .suspect { color: var(--orange) !important; }
+.detection-stage { color: #c0d9ca; font-size: 10px; line-height: 1.6; min-height: 32px; }
+.score-heading, .trust-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.score-heading strong { font-size: 36px; color: var(--orange); font-weight: 400; }
+.score-heading small { font-size: 12px; }
+.can-meter, .ugv-instruments progress { display: block; width: 100%; height: 12px; margin: 8px 0; accent-color: var(--orange); }
+.can-meter::-webkit-meter-optimum-value { background: #fa8855; }.can-meter::-moz-meter-bar { background: #fa8855; }
+.signal-caption { font-size: 8px; color: #82988d; line-height: 1.8; display: block; }
+.sensor-table { margin: 18px 0; }
+.sensor-table > div { display: grid; grid-template-columns: 1fr 1fr 20px; align-items: center; gap: 8px; border-top: 1px solid var(--border); padding: 10px 0; color: #8dd4bd; font-size: 10px; }
+.sensor-table b { font-size: 20px; font-weight: 400; }.sensor-table small { font-size: 9px; }
+.correlation-row { display: flex; justify-content: space-between; gap: 6px; font-size: 9px; padding-top: 12px; }.correlation-row b { font-size: 8px; color: var(--green); font-weight: 400; }
+.trust-row { margin-top: 20px; font-size: 11px; }
+.isolated-signal { border: 1px solid #726043; background: #252018; padding: 12px; margin-top: 15px; font-size: 9px; color: #dfb481; line-height: 1.9; }
+.can-evidence { margin-top: 15px; font-size: 9px; line-height: 1.8; }.can-evidence summary { cursor: pointer; }.can-evidence p { padding-top: 8px; color: #a2b7aa; }
+.ugv-analysis p { font-size: 10px; line-height: 1.9; margin-bottom: 10px; }
+.resilience-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 20px; border: 1px solid #365549; background: #0f1d18; margin-top: 16px; }
+.resilience-summary span { display: block; font-size: 8px; color: #95aa9b; margin-bottom: 8px; }.resilience-summary b { font-size: 11px; color: var(--green); }.resilience-summary p { grid-column: 1/-1; font-size: 9px; line-height: 1.8; color: #adc4b4; }
+@media (min-width: 801px) { .workspace { height: clamp(320px, calc(100dvh - 490px), 850px); }.ugv-workspace { min-height: 420px; } }
+@media (max-width: 800px) { .ugv-view { min-height: 490px; }.ground-scene { min-height: 290px; }.ugv-workspace aside { display: flex; }.can-controls .control-label { display: block; width: 100%; }.asset-tabs small { display: block; margin: 6px 0 0; }.resilience-summary { grid-template-columns: 1fr; } }
+@media (max-width: 480px) { .can-controls { display: grid; grid-template-columns: 1fr 1fr; }.can-controls .control-label, .can-controls button:last-child { grid-column: 1/-1; }.asset-tabs { display: grid; grid-template-columns: 1fr 1fr; }.asset-tabs .eyebrow { grid-column: 1/-1; }.ugv-motto { font-size: 9px; } }
+@media (prefers-reduced-motion: reduce) { .ground-vehicle { transition: none; }.ugv-radar { animation: none; } }
+.can-frame { padding: 9px 0; border-bottom: 1px solid var(--border); }.can-frame b, .can-frame span, .can-frame small { display: block; }.can-frame b { color: #bfd5c7; font-weight: 400; }.can-frame small { color: #80988b; }

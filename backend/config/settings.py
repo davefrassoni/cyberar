@@ -41,3 +41,13 @@ if CYBERAR_DEMO_DURATION < 30:
 if not DEBUG and (len(CYBERAR_PASSWORD) < 16 or CYBERAR_PASSWORD == "admin"):
     raise ImproperlyConfigured("Configurá una contraseña de producción de al menos 16 caracteres")
 FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
+
+CYBERAR_CAN_THRESHOLD = int(os.getenv("CYBERAR_CAN_THRESHOLD", "80"))
+if not 40 <= CYBERAR_CAN_THRESHOLD <= 99:
+    raise ImproperlyConfigured("CYBERAR_CAN_THRESHOLD debe estar entre 40 y 99")
+CYBERAR_AI_ENABLED = os.getenv("CYBERAR_AI_ENABLED", "false").lower() == "true"
+DF_AI_URL = os.getenv("DF_AI_URL", "http://127.0.0.1:8050").rstrip("/")
+DF_AI_TOKEN = os.getenv("DF_AI_TOKEN", "")
+DF_AI_CALLBACK_TOKEN = os.getenv("DF_AI_CALLBACK_TOKEN", "")
+DF_AI_HOST = os.getenv("DF_AI_HOST", "davefrassoni.com")
+CYBERAR_AI_TIMEOUT = min(30, max(1, int(os.getenv("CYBERAR_AI_TIMEOUT", "5"))))

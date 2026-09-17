@@ -5,6 +5,7 @@ from enum import StrEnum
 from communications.channels import metrics
 from events.log import emit
 from .scenario import DemoScenario, ROUTE
+from vehicles import ugv
 
 
 class Phase(StrEnum):
@@ -27,10 +28,11 @@ LABELS = {Phase.TAKEOFF: "Despegue confirmado", Phase.TRANSIT: "Tránsito hacia 
 
 
 class SimulationEngine:
-    def initial(self, duration=150):
+    def initial(self, duration=150, can_threshold=80):
         state = {"elapsed": 0, "duration": duration, "phase": Phase.PREPARING, "automatic": True,
                  "interference": 0, "active_channel": "RF-PRIMARY", "channels": metrics(),
-                 "checkpoint_index": 0, "route": copy.deepcopy(ROUTE), "events": [], "event_sequence": 0}
+                 "checkpoint_index": 0, "route": copy.deepcopy(ROUTE), "events": [], "event_sequence": 0,
+                 "ugv": ugv.initial(can_threshold)}
         self._telemetry(state)
         emit(state, "SYSTEM", "Simulador listo · escenario determinístico v1")
         return state
@@ -59,6 +61,7 @@ class SimulationEngine:
             if state["automatic"]:
                 self.set_interference(state, DemoScenario(state["duration"]).interference(state["elapsed"]))
             self._telemetry(state)
+            ugv.update(state, t)
         return state
 
     def set_interference(self, state, level):

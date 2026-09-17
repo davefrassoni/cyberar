@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.utils import timezone
 
 
 class DemoScenario(models.Model):
@@ -22,6 +23,7 @@ class MissionState(models.Model):
     running = models.BooleanField(default=False, db_index=True)
     speed = models.PositiveSmallIntegerField(default=1)
     revision = models.PositiveIntegerField(default=0)
+    generation = models.PositiveIntegerField(default=0)
     updated_at = models.DateTimeField(auto_now=True)
 
 
@@ -52,3 +54,17 @@ class RateLimit(models.Model):
     key = models.CharField(max_length=100, primary_key=True)
     window = models.BigIntegerField(default=0)
     count = models.PositiveIntegerField(default=0)
+
+
+class AIFlight(models.Model):
+    """One durable broker slot for this producer, including ambiguous timeouts."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    mission = models.ForeignKey(Mission, on_delete=models.CASCADE)
+    generation = models.PositiveIntegerField()
+    incident = models.PositiveIntegerField()
+    key = models.CharField(max_length=160)
+    job_id = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=16, default="PENDING")
+    snapshot = models.JSONField(default=dict)
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt = models.DateTimeField(default=timezone.now)

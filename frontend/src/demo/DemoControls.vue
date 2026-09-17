@@ -41,6 +41,12 @@ const redTeam = ref(false);
       △ RED TEAM
     </button>
   </div>
+  <div class="can-controls" v-if="state.ugv">
+    <span class="control-label">UGV-01 / CAN SIMULADO</span>
+    <button :disabled="busy" @click="command('can_start')">INICIAR ANOMALÍA CAN</button>
+    <button :disabled="busy" @click="command('can_increase')">AUMENTAR ANOMALÍA</button>
+    <button :disabled="busy" @click="command('can_restore')">RESTAURAR CAN</button>
+  </div>
   <section v-if="redTeam" class="red-team">
     <div class="panel-heading">
       <h3>INTERFERENCIA SIMULADA</h3>

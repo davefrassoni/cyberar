@@ -43,6 +43,12 @@ with connect(url, origin='https://davefrassoni.com', additional_headers={'Cookie
     call('control', {'action':'pause'}, csrf)
     manual = call('control', {'action':'interference', 'value':85}, csrf)
     assert manual['channels'][0]['packet_loss'] > 50
+    ground = call('control', {'action':'can_start'}, csrf)
+    assert ground['ugv']['level'] == 15 and ground['ugv']['manual']
+    ground = call('control', {'action':'can_increase'}, csrf)
+    assert ground['ugv']['level'] == 45
+    ground = call('control', {'action':'can_restore'}, csrf)
+    assert ground['ugv']['level'] == 0 and ground['interference'] == 85
     reset = call('control', {'action':'reset'}, csrf)
     for key in ['revision']: initial.pop(key); reset.pop(key)
     assert reset == initial

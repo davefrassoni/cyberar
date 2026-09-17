@@ -27,3 +27,7 @@ class DemoScenario:
         if t < 80: return 66
         if t < 105: return 90
         return 0
+
+    def can_manipulation(self, elapsed):
+        """SILENT_CAN_MANIPULATION: gradual, reproducible, purely synthetic."""
+        return max(0, min(100, (self.time(elapsed) - 70) * 5))

@@ -4,6 +4,7 @@ from django.contrib.sessions.models import Session
 from django.utils import timezone
 from events.log import emit
 from simulation.engine import SimulationEngine, Phase
+from vehicles import ugv
 from .models import Mission, MissionState, DemoScenario, MissionEvent, TelemetrySnapshot, CommunicationSnapshot
 
 engine = SimulationEngine()
@@ -27,14 +28,16 @@ def ensure_mission(session_key):
     if mission is None:
         scenario = DemoScenario.objects.create(duration=settings.CYBERAR_DEMO_DURATION, configuration={"engine": "atlantic-v1"})
         mission = Mission.objects.create(owner_session=session_key, scenario=scenario)
-        live = MissionState.objects.create(mission=mission, state=engine.initial(scenario.duration))
+        live = MissionState.objects.create(mission=mission, state=engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD))
         persist_events(live)
         snapshot(live)
     return mission
 
 
 def serialize(live):
-    return {"mission_id": str(live.mission_id), "revision": live.revision, "running": live.running, "speed": live.speed, **live.state}
+    state = dict(live.state)
+    state.setdefault("ugv", ugv.initial(settings.CYBERAR_CAN_THRESHOLD))
+    return {"mission_id": str(live.mission_id), "revision": live.revision, "running": live.running, "speed": live.speed, **state}
 
 
 @transaction.atomic
@@ -42,13 +45,16 @@ def control(mission_id, owner, body):
     live = MissionState.objects.select_for_update().select_related("mission__scenario").get(mission_id=mission_id, mission__owner_session=owner)
     action = body.get("action")
     if action in {"reset", "automatic_demo"}:
-        live.state = engine.initial(live.mission.scenario.duration)
+        live.state = engine.initial(live.mission.scenario.duration, settings.CYBERAR_CAN_THRESHOLD)
+        live.generation += 1
         live.running = action == "automatic_demo"
         live.speed = 1
         MissionEvent.objects.filter(mission=live.mission).delete()
         TelemetrySnapshot.objects.filter(mission=live.mission).delete()
         CommunicationSnapshot.objects.filter(mission=live.mission).delete()
         snapshot(live)
+    elif action in {"can_start", "can_increase", "can_restore"}:
+        ugv.control(live.state, action)
     elif action == "start":
         if live.state["phase"] == Phase.MISSION_COMPLETE: raise ValueError("Reiniciá la demo para comenzar otra misión")
         live.running = True

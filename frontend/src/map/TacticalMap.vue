@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from "vue";
+defineEmits(["select-ugv"]);
 const props = defineProps({ state: Object });
 const showZones = ref(true);
 const zoom = ref(1);
@@ -93,6 +94,12 @@ const trail = computed(() =>
             <path
               d="M742 334l12-9 14 8-6 12-18 2Z M792 354l10-4 7 10-14 7Z M617 298l12-5 4 10-13 6Z"
             />
+          </g>
+          <g v-if="state.ugv" class="ugv-overview">
+            <polyline :points="state.ugv.route.map(p => `${p.x},${p.y}`).join(' ')" fill="none" stroke="#8dd4bd" stroke-width="2" stroke-dasharray="2 4" />
+            <g :transform="`translate(${state.ugv.position.x} ${state.ugv.position.y})`" role="button" tabindex="0" aria-label="Seleccionar UGV-01" @click="$emit('select-ugv')" @keydown.enter="$emit('select-ugv')" @keydown.space.prevent="$emit('select-ugv')" style="cursor:pointer">
+              <circle r="20" fill="#152e28" stroke="#8dd4bd"/><rect x="-11" y="-8" width="22" height="16" rx="3" fill="#8dd4bd"/><path d="M-14-10H14M-14 10H14" stroke="#e3f5e7" stroke-width="3"/><text x="25" y="4" fill="#b9e6d1" font-size="11">UGV-01</text>
+            </g>
           </g>
           <g class="terrain">
             <path

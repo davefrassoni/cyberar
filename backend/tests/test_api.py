@@ -87,3 +87,14 @@ class APITests(TestCase):
         self.assertEqual(cookie["path"], "/cyberar/")
         self.assertTrue(cookie["httponly"])
         self.assertEqual(cookie["samesite"], "Strict")
+
+    def test_can_controls_are_session_scoped_and_independent_from_rf(self):
+        self.login()
+        self.post("control", {"action": "interference", "value": 55})
+        started = self.post("control", {"action": "can_start"}).json()
+        self.assertEqual(started["ugv"]["level"], 15)
+        increased = self.post("control", {"action": "can_increase"}).json()
+        self.assertEqual(increased["ugv"]["level"], 45)
+        restored = self.post("control", {"action": "can_restore"}).json()
+        self.assertEqual(restored["ugv"]["level"], 0)
+        self.assertEqual(restored["interference"], 55)

@@ -1,6 +1,8 @@
 import fcntl
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
+from vehicles.ai import process
 from contextlib import ExitStack
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection
@@ -30,6 +32,8 @@ class Command(BaseCommand):
                 except BlockingIOError:
                     raise CommandError("Ya existe un reloj de simulación activo")
             self.stdout.write("Reloj CYBER.AR activo")
+            executor = resources.enter_context(ThreadPoolExecutor(max_workers=1))
+            pending = None
             while True:
                 started = time.monotonic()
                 if leader is not None:
@@ -38,4 +42,8 @@ class Command(BaseCommand):
                 close_old_connections()
                 for mission_id in MissionState.objects.filter(running=True).values_list("mission_id", flat=True):
                     tick(mission_id)
+                if pending is None or pending.done():
+                    if pending is not None:
+                        pending.result()
+                    pending = executor.submit(process)
                 time.sleep(max(0, 1 - (time.monotonic() - started)))

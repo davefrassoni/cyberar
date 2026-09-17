@@ -135,7 +135,7 @@ Sesiones antiguas: programar `manage.py clearsessions` si el servicio se mantien
 ## Seguridad
 
 - Sesión de Django persistida en servidor; cookies HttpOnly, Secure en producción, SameSite Strict y path `/cyberar/`.
-- CSRF en todas las mutaciones, incluyendo login y logout.
+- CSRF en mutaciones de usuario, incluyendo login y logout; callback DF AI autenticado con bearer independiente.
 - Rate limit en PostgreSQL, compartido por workers: 8 intentos de login/IP/5 minutos; 90 controles/sesión/minuto.
 - Login verifica credenciales con comparación de tiempo constante; no hay passwords en JS.
 - WebSocket valida origen, sesión y expiración cada segundo. No acepta comandos entrantes.
@@ -144,21 +144,48 @@ Sesiones antiguas: programar `manage.py clearsessions` si el servicio se mantien
 - Nginx limita cuerpos a 16 KB y reemplaza IP de origen; Uvicorn solo escucha en loopback. No exponer directamente ese puerto a Internet.
 - Un usuario no autenticado solo recibe la pantalla de acceso y assets genéricos. No recibe estado ni puede generar misiones o jobs.
 
-## Integración DF AI: siguiente iteración
+## Integración DF AI
 
-Inspección del proyecto vecino: el broker recibe `POST /api/ai/jobs/`, `Authorization: Bearer …`, `X-AI-Project: cyberar`, `job_type`, `payload`, `idempotency_key` y `priority`. **La configuración del proyecto en `AI_HUB_PROJECTS_JSON` debe permitir prioridad 1**: el broker aplica `max(prioridad_del_proyecto, prioridad_solicitada)`.
+El análisis CAN usa el broker existente (`POST /api/ai/jobs/`), sin llamar
+Ollama ni al worker directamente. El proyecto `cyberar` debe tener prioridad
+base 1: el broker aplica `max(prioridad_del_proyecto, prioridad_solicitada)`.
+La integración para decisiones de comunicaciones UAV sigue pendiente; el panel
+UAV lo indica explícitamente. Ver configuración y garantías CAN a continuación.
 
-El worker vive en otra máquina. CYBER.AR no debe llamar Ollama directamente. La siguiente entrega debe añadir `DFAIClient`, `MockDFAIClient`, `FallbackDecisionEngine`, `CommunicationOrchestrator` y `AIAnalysis` con:
+## UGV-01 / anomalías CAN
 
-1. Snapshot estructurado y pequeño; salida JSON validada por enums y límites.
-2. Una solicitud activa por misión, debounce y thresholds configurables.
-3. `pending_analysis` cuando cambian métricas; comparar contra el estado actual antes de reenviar.
-4. Idempotencia también ante timeout de envío; no crear otro job si el anterior puede seguir activo en el broker.
-5. Callback autenticado, timeout, retry acotado y circuit breaker.
-6. Validación dentro del motor antes de aplicar recomendaciones; ignorar resultados de ejecuciones anteriores a un reset.
-7. Mock y reglas locales determinísticas; pruebas de single-flight, cola y fallback junto con su implementación.
+La pestaña **UGV-01** muestra la patrulla terrestre en la isla, animación vectorial,
+historial de velocidades y correlación GPS/IMU/CAN. Comparte el reloj, pausa,
+velocidad y reinicio de la misión UAV. El icono terrestre del mapa también abre
+la pestaña. Los controles CAN permiten iniciar, aumentar y restaurar una anomalía
+sin alterar la interferencia RF del UAV.
 
-No se presenta la telemetría de esta etapa como una respuesta del LLM.
+`CANSimulationEngine` produce seis mensajes ficticios. `CANAnomalyDetector`
+compara valores, rangos, cambios bruscos, frecuencia, IDs e historial reciente;
+la alerta no depende de DF AI. El escenario automático introduce
+`SILENT_CAN_MANIPULATION` desde T+70, escalada durante 20 segundos. El umbral
+`CYBERAR_CAN_THRESHOLD` vale 80 por defecto. Ocho segundos de escenario después
+de la alerta, el respaldo local aísla CAN SPEED si todavía falta una respuesta
+válida. El vehículo continúa a 9 km/h con GPS e IMU. No hay CAN real ni interfaces
+de conexión a vehículos físicos.
+
+Para habilitar DF AI en `/etc/cyberar.env`: `CYBERAR_AI_ENABLED=true`,
+`DF_AI_TOKEN`, `DF_AI_CALLBACK_TOKEN`, `DF_AI_URL` y opcionalmente `DF_AI_HOST`.
+El broker debe registrar el proyecto `cyberar`, permitir `prompt_json`, asignar
+prioridad base 1 y configurar el callback
+`https://davefrassoni.com/cyberar/api/ai/callback/` con el mismo callback token.
+El cliente pide JSON estructurado con `priority=1`; un hilo separado evita frenar
+el reloj del simulador. La interfaz distingue **DF AI** de **RESPALDO LOCAL**.
+
+El slot persistente `AIFlight` admite un único análisis en vuelo para todo el
+productor. Tres intentos con backoff reutilizan la misma clave de idempotencia.
+Un timeout ambiguo conserva el slot: no se lanza otro job mientras pueda seguir
+activo el anterior. Si se agotan los intentos o el broker no entrega callback,
+el respaldo local sigue funcionando; un operador debe reconciliar el job con
+el broker antes de liberar el slot. Los callbacks usan bearer auth y validación
+de esquema; `SafetyValidator` valida fuente, confianza, acción y evidencia actual.
+Restaurar CAN o reiniciar misión invalida resultados anteriores. El modelo nunca
+ejecuta comandos ni acciones directamente.
 
 ## Pruebas
 

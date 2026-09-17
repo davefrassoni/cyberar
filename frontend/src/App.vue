@@ -14,6 +14,9 @@ import CommsPanel from "./communications/CommsPanel.vue";
 import AIPanel from "./ai/AIPanel.vue";
 import EventLog from "./events/EventLog.vue";
 import DemoControls from "./demo/DemoControls.vue";
+import UGVPanel from "./ugv/UGVPanel.vue";
+import UGVView from "./ugv/UGVView.vue";
+const activeAsset = ref("UAV");
 const username = ref(""),
   password = ref("");
 async function submitLogin() {
@@ -141,14 +144,26 @@ onMounted(bootstrap);
         DATOS SIN ACTUALIZAR · Esperando conexión con el servidor
       </div>
       <DemoControls :state="store.state" :busy="store.busy" />
-      <div class="workspace">
-        <TacticalMap :state="store.state" />
-        <aside>
+      <nav class="asset-tabs" aria-label="Activos de la misión">
+        <span class="eyebrow">ACTIVOS</span>
+        <button :class="{ selected: activeAsset === 'UAV' }" :aria-pressed="activeAsset === 'UAV'" @click="activeAsset = 'UAV'">⌖ UAV-01 <small>● OPERATIVO</small></button>
+        <button :class="{ selected: activeAsset === 'UGV' }" :aria-pressed="activeAsset === 'UGV'" @click="activeAsset = 'UGV'">▰ UGV-01 <small>● {{ store.state.ugv?.status || 'OPERATIVO' }}</small></button>
+      </nav>
+      <div :class="['workspace', { 'ugv-workspace': activeAsset === 'UGV' }]">
+        <TacticalMap v-if="activeAsset === 'UAV'" :state="store.state" @select-ugv="activeAsset = 'UGV'" />
+        <UGVView v-else-if="store.state.ugv" :state="store.state" />
+        <aside v-if="activeAsset === 'UAV'">
           <TelemetryPanel :telemetry="store.state.telemetry" /><CommsPanel
             :state="store.state"
           /><AIPanel />
         </aside>
+        <aside v-else-if="store.state.ugv"><UGVPanel :ugv="store.state.ugv" /></aside>
       </div>
+      <section v-if="store.state.ugv?.untrusted" class="resilience-summary">
+        <div><span>UAV-01 / CAPA EXTERNA</span><b>COMUNICACIONES {{ store.state.interference ? 'EN OBSERVACIÓN' : 'OPERATIVAS ✓' }}</b></div>
+        <div><span>UGV-01 / CAPA INTERNA</span><b>ANOMALÍA AISLADA · MODO DEGRADADO ✓</b></div>
+        <p>RESILIENCIA MULTICAPA · CAN aislado ✓ · Correlación de sensores ✓ · {{ store.state.ugv.analysis.source === 'DF AI' ? 'Análisis DF AI ✓' : 'Respuesta local ✓ / DF AI no confirmado' }}</p>
+      </section>
       <EventLog
         :events="store.state.events"
       />
