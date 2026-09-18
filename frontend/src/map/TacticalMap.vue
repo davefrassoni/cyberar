@@ -18,6 +18,28 @@ const trailFor = (drone) =>
     .join(" ");
 const checkpointPosition = (cp, i) =>
   dragIndex.value === i ? dragPoint.value : cp;
+// Espeja RELAY_RANGE del motor (simulation/engine.py) — solo para decidir
+// visualmente si un enlace pasa por un relay antes de llegar a base.
+const RELAY_RANGE = 150;
+const signalQuality = computed(() => {
+  const active = props.state.channels?.find((c) => c.id === props.state.active_channel);
+  return active ? active.signal_quality : 100;
+});
+const linkColor = computed(() => {
+  const q = signalQuality.value;
+  return q >= 80 ? "#76bbaa" : q >= 55 ? "#fa8855" : "#ff6b5e";
+});
+const nearestRelay = (drone) =>
+  (props.state.relays || [])
+    .map((relay) => ({ relay, distance: Math.hypot(relay.x - drone.x, relay.y - drone.y) }))
+    .filter((r) => r.distance <= RELAY_RANGE)
+    .sort((a, b) => a.distance - b.distance)[0]?.relay;
+const linkPoints = (drone) => {
+  const base = props.state.route[0];
+  const relay = nearestRelay(drone);
+  const points = relay ? [drone, relay, base] : [drone, base];
+  return points.map((p) => `${p.x},${p.y}`).join(" ");
+};
 function toWorldPoint(evt) {
   const ctm = worldRef.value?.getScreenCTM();
   if (!ctm) return { x: 0, y: 0 };
@@ -188,6 +210,13 @@ function onCheckpointUp() {
               <text x="16" y="4">{{ jammer.label }}<tspan>{{ jammer.active ? " · ACTIVO" : "" }}</tspan></text>
             </g>
           </g>
+          <polyline
+            v-for="drone in state.drones"
+            :key="'link-' + drone.id"
+            :points="linkPoints(drone)"
+            class="comm-link"
+            :style="{ stroke: linkColor }"
+          />
           <polyline :points="route" class="planned-route" />
           <polyline
             v-for="(drone, i) in state.drones"
@@ -241,6 +270,16 @@ function onCheckpointUp() {
               <text x="10" y="15">{{ drone.id }}<tspan>●</tspan></text>
               <text x="10" y="30" class="uav-meta">{{ drone.altitude }} m / {{ drone.speed }} km/h</text>
             </g>
+          </g>
+          <g
+            v-for="relay in state.relays || []"
+            :key="relay.id"
+            class="relay"
+            :transform="`translate(${relay.x} ${relay.y})`"
+          >
+            <circle r="14" class="relay-halo" />
+            <path d="M0-11 9 0 0 11-9 0Z" class="relay-icon" />
+            <text y="-18">{{ relay.id }}</text>
           </g>
         </g>
         <g class="compass" transform="translate(1030,555)">

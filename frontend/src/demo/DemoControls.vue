@@ -89,6 +89,18 @@ async function selectControlMode(modeId) {
         </button>
       </div>
     </div>
+    <div class="big-choice">
+      <span class="control-label">RELAYS <small>{{ (state.relays || []).length }}/2</small></span>
+      <div class="big-buttons">
+        <button
+          :disabled="busy || (state.relays || []).length >= 2 || !state.drones?.length"
+          :title="!state.drones?.length ? 'Iniciá la misión para desplegar un relay' : (state.relays || []).length >= 2 ? 'Ya hay el máximo de 2 relays' : 'Despliega un UAV que repite el enlace de un dron hacia base'"
+          @click="command('add_relay')"
+        >
+          + DESPLEGAR RELAY<small>UAV que repite el enlace hacia base</small>
+        </button>
+      </div>
+    </div>
   </div>
   <div v-if="redTeam" class="modal-backdrop" @click.self="redTeam = false">
     <section class="red-team modal">

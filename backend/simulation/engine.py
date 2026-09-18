@@ -12,6 +12,11 @@ JAMMER_RANGE = 500
 JAMMER_POWER = 100
 JAMMER_ORBIT_PERIOD = 60  # segundos simulados para una vuelta completa del avión jammer
 CONTROL_MODES = {"AUTONOMOUS_ROUTE", "MANUAL_REMOTE", "AUTONOMOUS_AI_VISION"}
+MAX_RELAYS = 2
+RELAY_RANGE = 150  # distancia máxima a un UAV para que su relay mitigue interferencia
+RELAY_MITIGATION = 40  # puntos porcentuales de interferencia que resta un relay activo en rango
+RELAY_ORBIT_RADIUS = 35  # el relay vuela en círculo cerrado junto al UAV que acompaña
+RELAY_ORBIT_PERIOD = 20
 
 
 class Phase(StrEnum):
@@ -41,12 +46,13 @@ class SimulationEngine:
                  "interference": 0, "active_channel": "RF-PRIMARY", "channels": metrics(),
                  "checkpoint_index": 0, "route": copy.deepcopy(route) if route else copy.deepcopy(ROUTE),
                  "jammers": copy.deepcopy(jammers) if jammers is not None else jammers_for("atlantic"),
-                 "drones_launch": [0], "drone_faults": {}, "events": [], "event_sequence": 0,
+                 "drones_launch": [0], "drone_faults": {}, "relays": [], "events": [], "event_sequence": 0,
                  "ugv": ugv.initial(can_threshold,
                                      copy.deepcopy(ugv_route) if ugv_route else None,
                                      ugv_asset or atlantic["ugv"]["asset"],
                                      ugv_label or atlantic["ugv"]["label"])}
         self._fleet_telemetry(state)
+        self._update_relays(state)
         self._apply_jammers(state)
         emit(state, "SYSTEM", "Simulador listo · escenario determinístico v1")
         return state
@@ -61,6 +67,25 @@ class SimulationEngine:
         launches.append(state["elapsed"])
         self._fleet_telemetry(state)
         emit(state, "MISSION", f"UAV-{len(launches):02d} despegó desde base")
+        return state
+
+    def add_relay(self, original):
+        """Un UAV de relevo vuela en círculo junto a otro UAV de la flota y repite
+        su enlace hacia base: mientras esté en rango, mitiga la interferencia que
+        le llega a ese dron, sin necesitar un canal propio distinto."""
+        state = copy.deepcopy(original)
+        relays = state.setdefault("relays", [])
+        if len(relays) >= MAX_RELAYS:
+            raise ValueError("Ya hay el máximo de relays desplegados")
+        drones = state.get("drones") or []
+        if not drones:
+            raise ValueError("No hay UAV en vuelo para repetir")
+        drone_index = len(relays) % len(drones)
+        relay = {"id": f"RELAY-{len(relays) + 1:02d}", "drone_index": drone_index, "x": drones[drone_index]["x"], "y": drones[drone_index]["y"]}
+        relays.append(relay)
+        self._update_relays(state)
+        self._apply_jammers(state)
+        emit(state, "COMMUNICATION", f"{relay['id']} desplegado · repite el enlace de UAV-{drone_index + 1:02d} hacia base")
         return state
 
     def transition(self, state, target):
@@ -91,6 +116,7 @@ class SimulationEngine:
                     emit(state, "MISSION", f"{route[i]['id']} alcanzado")
                 state["checkpoint_index"] = index
             self._fleet_telemetry(state)
+            self._update_relays(state)
             self._apply_jammers(state)
             ugv.update(state, t_lead)
         return state
@@ -99,6 +125,7 @@ class SimulationEngine:
         """Recalcula la telemetría de la flota sin avanzar el reloj (edición de checkpoints/fallas)."""
         state = copy.deepcopy(original)
         self._fleet_telemetry(state)
+        self._update_relays(state)
         self._apply_jammers(state)
         return state
 
@@ -128,7 +155,24 @@ class SimulationEngine:
                 continue
             distance = min(math.hypot(jammer["x"] - d["x"], jammer["y"] - d["y"]) for d in drones)
             total += JAMMER_POWER * max(0, 1 - distance / JAMMER_RANGE)
+        relays = state.get("relays") or []
+        if total and relays and drones and any(
+            math.hypot(r["x"] - d["x"], r["y"] - d["y"]) <= RELAY_RANGE for r in relays for d in drones
+        ):
+            total = max(0, total - RELAY_MITIGATION)
         self.set_interference(state, round(min(100, total), 1))
+
+    def _update_relays(self, state):
+        """Vuelo en círculo cerrado alrededor del UAV acompañado — determinístico
+        en función del reloj, igual que la patrulla del avión jammer."""
+        drones = state.get("drones") or []
+        for relay in state.get("relays") or []:
+            if not drones:
+                continue
+            drone = drones[min(relay["drone_index"], len(drones) - 1)]
+            angle = state["elapsed"] * (2 * math.pi / RELAY_ORBIT_PERIOD)
+            relay["x"] = round(drone["x"] + RELAY_ORBIT_RADIUS * math.cos(angle), 2)
+            relay["y"] = round(drone["y"] + RELAY_ORBIT_RADIUS * math.sin(angle), 2)
 
     def set_jammer(self, original, jammer_id, active):
         state = copy.deepcopy(original)

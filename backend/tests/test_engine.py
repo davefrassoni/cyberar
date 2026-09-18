@@ -69,6 +69,20 @@ class EngineTests(TestCase):
         with self.assertRaises(ValueError):
             self.engine.add_drone(complete)
 
+    def test_add_relay_orbits_its_drone_and_caps_at_two(self):
+        state = self.engine.initial()
+        state = self.engine.add_relay(state)
+        self.assertEqual(state["relays"][0]["drone_index"], 0)
+        state = self.engine.add_relay(state)
+        self.assertEqual(len(state["relays"]), 2)
+        with self.assertRaises(ValueError):
+            self.engine.add_relay(state)
+        advanced = self.engine.advance(state, 5)
+        drone = advanced["drones"][0]
+        relay = advanced["relays"][0]
+        distance = ((relay["x"] - drone["x"]) ** 2 + (relay["y"] - drone["y"]) ** 2) ** 0.5
+        self.assertAlmostEqual(distance, 35, delta=0.1)
+
     def test_added_drone_launches_from_base_at_the_current_time(self):
         state = self.engine.advance(self.engine.initial(), 20)
         state = self.engine.add_drone(state)

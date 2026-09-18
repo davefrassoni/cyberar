@@ -2394,3 +2394,30 @@ aside {
   color: #7b9099;
   margin-left: auto;
 }
+
+/* Enlace de comunicación dron→base (→relay si hay uno en rango), coloreado
+   según la calidad del canal activo. */
+.comm-link {
+  fill: none;
+  stroke-width: 1.6;
+  stroke-dasharray: 2 5;
+  opacity: 0.75;
+  transition: stroke 0.3s;
+}
+.relay-halo {
+  fill: #10181c;
+  stroke: var(--green);
+  stroke-width: 1.2;
+}
+.relay-icon {
+  fill: none;
+  stroke: var(--green);
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+.relay text {
+  fill: #9adcc6;
+  font-size: 9px;
+  text-anchor: middle;
+  letter-spacing: 0.03em;
+}

@@ -23,10 +23,11 @@ def snapshot(live):
 
 
 def _needs_repair(state):
-    """True for state blobs persisted before the fleet/route refactor (no 'drones' list yet)
-    or before the jammer-based interference refactor (no 'jammers' list yet)."""
+    """True for state blobs persisted before the fleet/route refactor (no 'drones' list yet),
+    before the jammer-based interference refactor (no 'jammers' list yet), or before relays."""
     return (not isinstance(state.get("route"), list) or not isinstance(state.get("drones"), list)
-            or not state["drones"] or "drones_launch" not in state or "jammers" not in state)
+            or not state["drones"] or "drones_launch" not in state or "jammers" not in state
+            or "relays" not in state)
 
 
 @transaction.atomic
@@ -89,6 +90,8 @@ def control(mission_id, owner, body):
         _reset_with(live, scenario_key=body["value"])
     elif action == "add_drone":
         live.state = engine.add_drone(live.state)
+    elif action == "add_relay":
+        live.state = engine.add_relay(live.state)
     elif action in {"can_start", "can_increase", "can_restore"}:
         ugv.control(live.state, action)
     elif action == "start":

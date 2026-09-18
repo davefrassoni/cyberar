@@ -35,6 +35,23 @@ class ScenarioControlTests(TestCase):
         response = self.post({"action": "add_drone"})
         self.assertEqual(response.status_code, 400)
 
+    def test_add_relay_grows_and_caps_at_two(self):
+        response = self.post({"action": "add_relay"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(response.json()["relays"]), 1)
+        self.assertEqual(response.json()["relays"][0]["drone_index"], 0)
+        self.post({"action": "add_relay"})
+        response = self.post({"action": "add_relay"})
+        self.assertEqual(response.status_code, 400)
+
+    def test_relay_in_range_mitigates_jammer_interference(self):
+        state = self.client.get("/cyberar/api/state/").json()
+        jammer_id = state["jammers"][0]["id"]
+        without_relay = self.post({"action": "set_jammer", "value": {"id": jammer_id, "active": True}}).json()
+        self.assertGreater(without_relay["interference"], 0)
+        with_relay = self.post({"action": "add_relay"}).json()
+        self.assertLess(with_relay["interference"], without_relay["interference"])
+
     def test_set_checkpoint_persists_and_reverts_on_scenario_switch(self):
         response = self.post({"action": "set_checkpoint", "value": {"index": 1, "x": 400, "y": 300}})
         self.assertEqual(response.status_code, 200)
