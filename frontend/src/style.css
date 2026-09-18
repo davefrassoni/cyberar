@@ -1437,11 +1437,18 @@ aside {
   position: relative;
   min-height: calc(100vh - 76px);
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  padding: 80px 50px;
+  overflow: hidden;
+}
+.login-row {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: clamp(50px, 10vw, 220px);
-  padding: 80px 50px;
-  overflow: hidden;
 }
 .login-grid {
   position: absolute;
@@ -1500,9 +1507,8 @@ aside {
 }
 .login-logo {
   position: relative;
-  width: clamp(120px, 12vw, 190px);
+  width: clamp(80px, 7vw, 110px);
   height: auto;
-  flex-shrink: 0;
 }
 .login-card {
   width: 390px;
@@ -1854,9 +1860,12 @@ aside {
     font-size: 6px;
   }
   .login-screen {
-    flex-direction: column;
     gap: 45px;
     padding: 50px 20px 80px;
+  }
+  .login-row {
+    flex-direction: column;
+    gap: 45px;
   }
   .login-copy {
     width: 390px;

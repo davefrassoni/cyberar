@@ -92,17 +92,18 @@ onMounted(bootstrap);
       <div class="login-grid" />
       <div class="login-orbit orbit-one" />
       <div class="login-orbit orbit-two" />
-      <div class="login-copy">
-        <span class="eyebrow orange-text">CYBER.AR 2026 / ATLÁNTICO SUR</span>
-        <h1>La misión<br />continúa<span>.</span></h1>
-        <p>Un enlace puede fallar.<br />Un sistema resiliente se adapta.</p>
-        <div class="principles">
-          <span>01 DETECTAR</span><span>02 ANALIZAR</span><span>03 ADAPTAR</span
-          ><span>04 CONTINUAR</span>
-        </div>
-      </div>
       <img :src="logoUrl" alt="La misión continúa" class="login-logo" />
-      <form class="login-card" @submit.prevent="submitLogin">
+      <div class="login-row">
+        <div class="login-copy">
+          <span class="eyebrow orange-text">CYBER.AR 2026 / ATLÁNTICO SUR</span>
+          <h1>La misión<br />continúa<span>.</span></h1>
+          <p>Un enlace puede fallar.<br />Un sistema resiliente se adapta.</p>
+          <div class="principles">
+            <span>01 DETECTAR</span><span>02 ANALIZAR</span><span>03 ADAPTAR</span
+            ><span>04 CONTINUAR</span>
+          </div>
+        </div>
+        <form class="login-card" @submit.prevent="submitLogin">
         <span class="eyebrow">ACCESO RESTRINGIDO / DEMOSTRACIÓN</span>
         <h2>Centro de operaciones</h2>
         <p>Identificate para acceder al simulador.</p>
@@ -127,6 +128,7 @@ onMounted(bootstrap);
           ▣ SESIÓN SEGURA <span>SOLO PERSONAL AUTORIZADO</span>
         </div>
       </form>
+      </div>
       <div class="login-bottom">
         SIMULACIÓN 100% SOFTWARE · SIN HARDWARE NI EMISIONES RF
         <span>PROTOTIPO / V0.1</span>
