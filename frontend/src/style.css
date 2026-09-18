@@ -1136,20 +1136,6 @@ aside {
   color: #c99a72;
   font-weight: 400;
 }
-.comms-modal-countdown {
-  border-top: 1px solid #4a3325;
-  margin-top: 4px;
-  padding-top: 16px;
-  font-size: 10px;
-  color: #d9a380;
-}
-.comms-modal-countdown .countdown-number {
-  display: inline-block;
-  min-width: 22px;
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--orange);
-}
 .comms-modal-actions {
   display: flex;
   gap: 10px;

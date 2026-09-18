@@ -24,6 +24,18 @@ class UGVTests(TestCase):
         self.assertGreater(state['ugv']['progress'], 3)
         self.assertIn('ANOMALÍA CAN', state['ugv']['milestones'])
 
+    def test_isolated_signal_is_reverified_several_times_without_a_broker(self):
+        """CAN integrity keeps getting re-checked after isolation, purely on the
+        local fallback (no DF AI configured) — not a single one-shot analysis."""
+        state = self.engine.initial()
+        for _ in range(150):
+            state = self.engine.advance(state)
+        self.assertTrue(state['ugv']['untrusted'])
+        self.assertGreater(state['ugv']['analysis_runs'], 1)
+        self.assertEqual(state['ugv']['analysis']['source'], 'LOCAL')
+        reverifications = [e for e in state['events'] if 'Reverificación' in e['message']]
+        self.assertGreaterEqual(len(reverifications), 2)
+
     def test_manual_restore_does_not_change_uav(self):
         state = self.engine.advance(self.engine.initial(), 80)
         interference = state['interference']

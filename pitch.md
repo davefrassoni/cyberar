@@ -51,10 +51,10 @@ Guion minuto a minuto para demostrar en vivo las funcionalidades del simulador: 
 
 ## 2:15–3:00 — Comunicaciones resilientes (mientras la flota vuela)
 
-**DECIR:** "Mientras vuela, miremos comunicaciones. El dron no depende de un solo enlace: tiene RF primario, RF direccional, óptico, satelital de respaldo — y fibra tendida como último recurso, inmune a cualquier jamming porque no es inalámbrica."
+**DECIR:** "Mientras vuela, miremos comunicaciones. El dron no depende de un solo enlace: tiene RF primario, RF direccional, óptico y satelital de respaldo."
 
 **HACER:**
-1. Señalar los botones grandes **ENLACE CON EL DRON** (RF / RF DIRECCIONAL / SATELITAL / LÁSER / FIBRA (CABLE)) debajo de los controles de demo — click sobre uno distinto al activo (por ej. **SATELITAL**) para mostrar que se puede conmutar manualmente en cualquier momento.
+1. Señalar los botones grandes **ENLACE CON EL DRON** (RF / RF DIRECCIONAL / SATELITAL / LÁSER) debajo de los controles de demo — click sobre uno distinto al activo (por ej. **SATELITAL**) para mostrar que se puede conmutar manualmente en cualquier momento.
 2. Abrir **△ RED TEAM** → click **📡 JAMMING RF** (el botón se pone rojo/activo; en el mapa aparece la fuente terrestre encubierta con su zona de disrupción).
 3. Señalar el **popup de alerta** que aparece: degradación detectada, canal recomendado, cuenta atrás de 3 segundos.
 4. Dejar que el countdown llegue a cero (conmuta solo) — o, si querés mostrar el control manual, click **CANCELAR** y luego **CONMUTAR AHORA**.
@@ -98,7 +98,6 @@ Guion minuto a minuto para demostrar en vivo las funcionalidades del simulador: 
 
 ## Plan B / contingencias
 
-- **Si querés un cierre visual fuerte para la resiliencia:** con **📡 JAMMING RF** y **✈ JAMMING C2** activos a la vez, abrí el panel de comunicaciones y mostrá que RF y RF DIRECCIONAL están en rojo/degradados mientras **FIBRA (CABLE)** se mantiene en 96% — es el único canal con impacto de interferencia 0 por diseño, porque no es inalámbrico. Conecta directo con la propuesta original del equipo ("comunicación por cable") llevada al simulador como un canal real y seleccionable.
 - **Si un solo jammer no alcanza a degradar el canal activo** (la interferencia depende de la distancia real al UAV, así que cuanto más lejos de la base esté volando, menos pega): activar también **✈ JAMMING C2** además de **📡 JAMMING RF** — con los dos activos el popup dispara seguro. Practicá el timing una vez para saber en qué punto del vuelo conviene activarlo.
 - **Si el broker DF AI está apagado:** el debriefing y la anomalía CAN muestran igual el insight local — decilo como feature ("nunca depende de que un modelo externo responda a tiempo"), no como limitación.
 - **Si el drag de checkpoints no agarra bien en el mouse/trackpad del lugar:** mostralo de todos modos, es tolerante a reintentos; si falla, seguí — no es bloqueante para el resto del guion.

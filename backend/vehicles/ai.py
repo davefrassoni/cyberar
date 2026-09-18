@@ -127,8 +127,10 @@ def callback(request):
         if live.generation == flight.generation and ugv.get("incident") == flight.incident:
             try:
                 if result is None:
-                    if not ugv.get("untrusted"):
-                        ugv["analysis"].update(status="REJECTED", source="LOCAL", result=None)
+                    # Terminal regardless of `untrusted`: this must always resolve, or a
+                    # periodic re-verification response with a bad schema would leave
+                    # analysis.status stuck forever, freezing every future re-check.
+                    ugv["analysis"].update(status="REJECTED", source="LOCAL", result=None)
                     emit(live.state, "DF AI", "Respuesta descartada: esquema inválido · respaldo local activo")
                 elif ugv.get("untrusted"):
                     ugv["analysis"].update(status="COMPLETED", source="DF AI", result=result)

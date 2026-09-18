@@ -6,7 +6,7 @@ Simulador de comunicaciones resilientes UAV para el Hackathon CYBER.AR. **100% s
 
 ## Entrega: iteración 1
 
-Funciona bajo **`/cyberar/`**: login, sesión del servidor, misión OPERACIÓN ATLÁNTICO, mapa SVG propio, UAV con posición calculada por el backend, ruta con ocho puntos, telemetría, cinco canales simulados (RF primario, RF direccional, óptico/láser, satelital y fibra tendida inmune a interferencia), degradación programada o manual, eventos, WebSocket, pausa, reset y velocidades 1×/2×/4×.
+Funciona bajo **`/cyberar/`**: login, sesión del servidor, misión OPERACIÓN ATLÁNTICO, mapa SVG propio, UAV con posición calculada por el backend, ruta con ocho puntos, telemetría, cuatro canales simulados (RF primario, RF direccional, óptico/láser y satelital), degradación programada o manual, eventos, WebSocket, pausa, reset y velocidades 1×/2×/4×.
 
 **Todavía no implementado:** CommunicationOrchestrator, recomendaciones DF AI, cambio autónomo de canal, imágenes, transmisión progresiva, store-and-forward y recuperación de buffer. El panel DF AI lo informa expresamente y el sistema no envía jobs. Esta etapa demuestra el recorrido y la degradación; la adaptación autónoma se agrega en la siguiente.
 

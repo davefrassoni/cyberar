@@ -3,15 +3,10 @@ CHANNELS = [
     ("RF-DIRECTIONAL", "RF", 8, 58, 27.2),
     ("OPTICAL-LINK", "OPTICAL", 24, 12, 35),
     ("SATELLITE-FALLBACK", "SATELLITE", 1.5, 620, 16),
-    ("TETHERED-FIBER", "FIBER", 100, 4, 42),
 ]
 
 # Fracción de la interferencia RF/óptica ambiental que golpea a cada canal.
-# La fibra tendida no es inalámbrica: ningún jammer RF ni interferencia
-# atmosférica puede tocarla, por eso su impacto es 0 (inmune por diseño,
-# no por simulación optimista) — el costo real es de alcance físico, no
-# de calidad de señal, y ese costo no lo modela este motor.
-IMPACT = (1, .72, .22, .12, 0)
+IMPACT = (1, .72, .22, .12)
 
 
 def metrics(interference=0):

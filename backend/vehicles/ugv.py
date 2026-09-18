@@ -10,6 +10,10 @@ ROUTE = [dict(id=name, x=x, y=y) for name, x, y in [
 DEFAULT_ASSET = "UGV-01"
 DEFAULT_LABEL = "Vehículo terrestre costero"
 ACTIONS = {"CONTINUE_MONITORING", "MARK_SIGNAL_UNTRUSTED", "ISOLATE_SIGNAL", "REDUCE_SPEED", "SAFE_STOP", "RETURN_TO_BASE"}
+# Segundos simulados (misma escala normalizada que `t`) entre reverificaciones
+# de integridad una vez aislada la señal: el monitoreo no termina en el primer
+# análisis, se sigue confirmando periódicamente durante el resto de la misión.
+REANALYSIS_INTERVAL = 15
 
 
 class SafetyValidator:
@@ -38,7 +42,8 @@ def initial(threshold=80, route=None, asset=None, label=None):
             "safe_stop": False, "returning": False, "reduced": False,
             "detector": CANAnomalyDetector().analyze(messages, 0, 0, []),
             "analysis": {"status": "IDLE", "source": "LOCAL", "requested_at": None, "result": None},
-            "milestones": [], "alert_at": None}
+            "milestones": [], "alert_at": None, "analysis_runs": 0,
+            "next_reanalysis_at": None, "reanalysis_requested_at": None}
 
 
 def control(state, action):
@@ -115,8 +120,29 @@ def update(state, t):
     if score >= ugv["threshold"] and ugv["alert_at"] is None:
         ugv["alert_at"] = t
         ugv["analysis"].update(status="PENDING", requested_at=state["elapsed"])
+        ugv["analysis_runs"] += 1
+        ugv["next_reanalysis_at"] = t + REANALYSIS_INTERVAL
         emit(state, "SYSTEM", "Evidencia CAN suficiente · análisis P1 pendiente")
     # Local fallback is explicit, and never waits on the availability of a model.
     if ugv["alert_at"] is not None and t-ugv["alert_at"] >= 8 and not ugv["untrusted"] and score >= ugv["threshold"]:
         apply_recommendation(state, {"severity": "HIGH", "assessment": "CAN SPEED contradice GPS e IMU de forma persistente. Se descarta la señal y se reduce la velocidad.",
             "suspected_source": "CAN_SPEED", "confidence": .94, "recommended_action": "ISOLATE_SIGNAL"}, "LOCAL")
+    # Monitoreo continuo: aislar la señal una vez no cierra el caso. Se sigue
+    # reverificando la integridad cada REANALYSIS_INTERVAL, con el mismo
+    # respaldo local explícito de 8s si el broker no contesta a tiempo —
+    # nunca se queda esperando indefinidamente a un modelo externo. Se
+    # reverifica en base al estado aislado, no al score del momento: una vez
+    # aislada la señal, la fuente confiable (GPS/IMU) baja el score por
+    # diseño, y eso no significa que ya no haga falta seguir confirmando.
+    if ugv["untrusted"]:
+        status = ugv["analysis"]["status"]
+        if status in ("COMPLETED", "REJECTED") and t >= ugv["next_reanalysis_at"]:
+            ugv["analysis"].update(status="PENDING", requested_at=state["elapsed"])
+            ugv["analysis_runs"] += 1
+            ugv["reanalysis_requested_at"] = t
+            emit(state, "SYSTEM", "Reverificación periódica de integridad CAN · análisis pendiente")
+        elif status == "PENDING" and ugv["reanalysis_requested_at"] is not None and t - ugv["reanalysis_requested_at"] >= 8:
+            apply_recommendation(state, {"severity": "LOW", "assessment": "Reverificación local: CAN SPEED continúa aislado, GPS e IMU siguen consistentes entre sí.",
+                "suspected_source": "CAN_SPEED", "confidence": .9, "recommended_action": "CONTINUE_MONITORING"}, "LOCAL")
+            ugv["next_reanalysis_at"] = t + REANALYSIS_INTERVAL
+            emit(state, "CAN", "Reverificación local confirmada · señal continúa aislada")

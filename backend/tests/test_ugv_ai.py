@@ -38,6 +38,23 @@ class AITests(TestCase):
 
     @patch('vehicles.ai.close_old_connections')
     @patch('vehicles.ai.DFAIClient.submit')
+    def test_isolated_signal_reserves_the_shared_flight_again_later(self, submit, close):
+        """Isolation is not the end of the story: once resolved, periodic
+        re-verification submits a fresh job through the same single-flight slot."""
+        submit.return_value = str(uuid.uuid4())
+        process()
+        self.assertEqual(submit.call_count, 1)
+        self.callback(submit.return_value)
+        self.live.refresh_from_db()
+        self.assertTrue(self.live.state['ugv']['untrusted'])
+        self.live.state = SimulationEngine().advance(self.live.state, 12)
+        self.live.save()
+        submit.return_value = str(uuid.uuid4())
+        process()
+        self.assertEqual(submit.call_count, 2)
+
+    @patch('vehicles.ai.close_old_connections')
+    @patch('vehicles.ai.DFAIClient.submit')
     def test_reset_rejects_late_result(self, submit, close):
         submit.return_value = str(uuid.uuid4()); process()
         self.live.refresh_from_db()

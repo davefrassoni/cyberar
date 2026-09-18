@@ -21,8 +21,11 @@ defineProps({ state: Object });
         </p>
       </div>
     </div>
-    <div class="ai-footer">
-      <span>JOBS ENVIADOS</span><b>0</b><span>PRIORIDAD PREVISTA</span><b>P1</b>
+    <div class="ai-footer" v-if="state?.scenario_meta?.has_ugv">
+      <span>ANÁLISIS CAN ENVIADOS</span><b>{{ state.ugv?.analysis_runs || 0 }}</b><span>PRIORIDAD</span><b>P1</b>
+    </div>
+    <div class="ai-footer" v-else>
+      <span>ANÁLISIS</span><b>DEBRIEFING</b><span>PRIORIDAD</span><b>P2</b>
     </div>
   </section>
 </template>

@@ -174,5 +174,4 @@ export const COMM_TYPES = [
   { id: "RF-DIRECTIONAL", label: "RF DIRECCIONAL" },
   { id: "SATELLITE-FALLBACK", label: "SATELITAL" },
   { id: "OPTICAL-LINK", label: "LÁSER" },
-  { id: "TETHERED-FIBER", label: "FIBRA (CABLE)" },
 ];
