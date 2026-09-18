@@ -18,6 +18,12 @@ _ATLANTIC_ROUTE = [
 _ATLANTIC_UGV_ROUTE = [dict(id=name, x=x, y=y) for name, x, y in [
     ("BASE-UGV", 666, 252), ("T-01", 680, 238), ("T-02", 706, 242),
     ("T-03", 711, 264), ("OBSERVATION", 689, 294), ("RETURN", 666, 252)]]
+_ATLANTIC_JAMMERS = [
+    {"id": "jam-rf-atlantic", "attack": "JAMMING_RF", "kind": "GROUND", "label": "Jammer RF encubierto",
+     "cx": _ATLANTIC_ROUTE[0]["x"], "cy": _ATLANTIC_ROUTE[0]["y"], "radius": 0},
+    {"id": "jam-c2-atlantic", "attack": "JAMMING_C2", "kind": "AIRCRAFT", "label": "Avión jammer C2",
+     "cx": 735, "cy": 270, "radius": 90},
+]
 
 _VACA_MUERTA_ROUTE = [
     {"id": "BASE-VM", "x": 150, "y": 500, "at": 0},
@@ -32,6 +38,12 @@ _VACA_MUERTA_ROUTE = [
 _VACA_MUERTA_UGV_ROUTE = [dict(id=name, x=x, y=y) for name, x, y in [
     ("BASE-ROV", 690, 330), ("DUCTO-T1", 715, 320), ("DUCTO-T2", 740, 336),
     ("VALVULA-01", 733, 358), ("INSPECCION", 706, 368), ("RETURN", 690, 330)]]
+_VACA_MUERTA_JAMMERS = [
+    {"id": "jam-rf-vaca-muerta", "attack": "JAMMING_RF", "kind": "GROUND", "label": "Jammer RF encubierto",
+     "cx": _VACA_MUERTA_ROUTE[0]["x"], "cy": _VACA_MUERTA_ROUTE[0]["y"], "radius": 0},
+    {"id": "jam-c2-vaca-muerta", "attack": "JAMMING_C2", "kind": "AIRCRAFT", "label": "Avión jammer C2",
+     "cx": 730, "cy": 340, "radius": 90},
+]
 
 _TRIPLE_FRONTERA_ROUTE = [
     {"id": "BASE-TF", "x": 165, "y": 150, "at": 0},
@@ -46,21 +58,27 @@ _TRIPLE_FRONTERA_ROUTE = [
 _TRIPLE_FRONTERA_UGV_ROUTE = [dict(id=name, x=x, y=y) for name, x, y in [
     ("BASE-PTF", 640, 280), ("PASO-01", 662, 268), ("PASO-02", 686, 280),
     ("RIBERA-01", 680, 300), ("CONTROL", 654, 302), ("RETURN", 640, 280)]]
+_TRIPLE_FRONTERA_JAMMERS = [
+    {"id": "jam-rf-triple-frontera", "attack": "JAMMING_RF", "kind": "GROUND", "label": "Jammer RF encubierto",
+     "cx": _TRIPLE_FRONTERA_ROUTE[0]["x"], "cy": _TRIPLE_FRONTERA_ROUTE[0]["y"], "radius": 0},
+    {"id": "jam-c2-triple-frontera", "attack": "JAMMING_C2", "kind": "AIRCRAFT", "label": "Avión jammer C2",
+     "cx": 760, "cy": 320, "radius": 90},
+]
 
 SCENARIOS = {
     "atlantic": {
         "label": "Operación Atlántico", "subtitle": "Reconocimiento marítimo",
-        "vehicle_type": FIXED_WING, "route": _ATLANTIC_ROUTE,
+        "vehicle_type": FIXED_WING, "route": _ATLANTIC_ROUTE, "jammers": _ATLANTIC_JAMMERS,
         "ugv": {"asset": "UGV-01", "label": "Vehículo terrestre costero", "route": _ATLANTIC_UGV_ROUTE},
     },
     "vaca-muerta": {
         "label": "Operación Cuenca Neuquina", "subtitle": "Patrulla de infraestructura petrolera",
-        "vehicle_type": QUADCOPTER, "route": _VACA_MUERTA_ROUTE,
+        "vehicle_type": QUADCOPTER, "route": _VACA_MUERTA_ROUTE, "jammers": _VACA_MUERTA_JAMMERS,
         "ugv": {"asset": "ROV-01", "label": "Rover inspector de ductos", "route": _VACA_MUERTA_UGV_ROUTE},
     },
     "triple-frontera": {
         "label": "Operación Triple Frontera", "subtitle": "Patrulla fronteriza fluvial",
-        "vehicle_type": QUADCOPTER, "route": _TRIPLE_FRONTERA_ROUTE,
+        "vehicle_type": QUADCOPTER, "route": _TRIPLE_FRONTERA_ROUTE, "jammers": _TRIPLE_FRONTERA_JAMMERS,
         "ugv": {"asset": "PTF-01", "label": "Patrulla terrestre fronteriza", "route": _TRIPLE_FRONTERA_UGV_ROUTE},
     },
 }
@@ -84,6 +102,12 @@ def ugv_route_for(key):
     return copy.deepcopy(SCENARIOS[key]["ugv"]["route"])
 
 
+def jammers_for(key):
+    if key not in SCENARIOS:
+        raise ValueError("Escenario desconocido")
+    return [dict(jammer, active=False) for jammer in SCENARIOS[key]["jammers"]]
+
+
 def scenario_meta(key):
     if key not in SCENARIOS:
         raise ValueError("Escenario desconocido")
@@ -99,14 +123,6 @@ class DemoScenario:
 
     def time(self, elapsed):
         return elapsed * 150 / self.duration
-
-    def interference(self, elapsed):
-        t = self.time(elapsed)
-        if t < 30: return 0
-        if t < 55: return 32
-        if t < 80: return 66
-        if t < 105: return 90
-        return 0
 
     def can_manipulation(self, elapsed):
         """SILENT_CAN_MANIPULATION: gradual, reproducible, purely synthetic."""

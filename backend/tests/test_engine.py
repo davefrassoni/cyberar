@@ -32,10 +32,11 @@ class EngineTests(TestCase):
 
     def test_degradation_and_restoration(self):
         initial = self.engine.initial()
-        degraded = self.engine.advance(initial, 80)
+        jammer_id = initial["jammers"][0]["id"]
+        degraded = self.engine.set_jammer(initial, jammer_id, True)
         self.assertLess(degraded["channels"][0]["snr"], 5)
         self.assertGreater(degraded["channels"][0]["packet_loss"], 50)
-        recovered = self.engine.advance(degraded, 25)
+        recovered = self.engine.restore_jammers(degraded)
         self.assertEqual(initial["channels"], recovered["channels"])
 
     def test_duration_scaling(self):
@@ -43,11 +44,14 @@ class EngineTests(TestCase):
         self.assertEqual(result["phase"], Phase.MISSION_COMPLETE)
         self.assertEqual(result["checkpoint_index"], 7)
 
-    def test_manual_control_is_not_overwritten(self):
+    def test_jammer_interference_persists_while_active(self):
         state = self.engine.initial()
-        state["automatic"] = False
-        self.engine.set_interference(state, 55)
-        self.assertEqual(self.engine.advance(state, 120)["interference"], 55)
+        jammer_id = state["jammers"][0]["id"]
+        state = self.engine.set_jammer(state, jammer_id, True)
+        self.assertGreater(state["interference"], 0)
+        advanced = self.engine.advance(state, 5)
+        self.assertGreater(advanced["interference"], 0)
+        self.assertTrue(advanced["jammers"][0]["active"])
 
     def test_invalid_interference(self):
         for value in [-1, 101, True, None, "20", float("nan"), float("inf")]:
@@ -106,3 +110,7 @@ class EngineTests(TestCase):
                     self.assertTrue(0 <= cp["y"] <= 650)
                 ugv_route = entry["ugv"]["route"]
                 self.assertGreaterEqual(len(ugv_route), 3)
+                self.assertEqual(len(entry["jammers"]), 2)
+                for jammer in entry["jammers"]:
+                    self.assertTrue(0 <= jammer["cx"] <= 1100)
+                    self.assertTrue(0 <= jammer["cy"] <= 650)

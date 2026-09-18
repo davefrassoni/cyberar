@@ -4,8 +4,8 @@ from django.db import transaction
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 from events.log import emit
-from simulation.engine import SimulationEngine, Phase
-from simulation.scenario import SCENARIOS, route_for, scenario_meta as build_scenario_meta
+from simulation.engine import SimulationEngine, Phase, CONTROL_MODES
+from simulation.scenario import SCENARIOS, route_for, jammers_for, scenario_meta as build_scenario_meta
 from vehicles import ugv
 from .models import Mission, MissionState, DemoScenario, MissionEvent, TelemetrySnapshot, CommunicationSnapshot
 
@@ -23,8 +23,10 @@ def snapshot(live):
 
 
 def _needs_repair(state):
-    """True for state blobs persisted before the fleet/route refactor (no 'drones' list yet)."""
-    return not isinstance(state.get("route"), list) or not isinstance(state.get("drones"), list) or not state["drones"] or "drones_launch" not in state
+    """True for state blobs persisted before the fleet/route refactor (no 'drones' list yet)
+    or before the jammer-based interference refactor (no 'jammers' list yet)."""
+    return (not isinstance(state.get("route"), list) or not isinstance(state.get("drones"), list)
+            or not state["drones"] or "drones_launch" not in state or "jammers" not in state)
 
 
 @transaction.atomic
@@ -66,7 +68,7 @@ def _reset_with(live, scenario_key=None, running=False):
     route = route_for(scenario.scenario_key, scenario.configuration.get("checkpoints"))
     live.state = engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD, route=route,
                                  ugv_route=meta["ugv"]["route"], ugv_asset=meta["ugv"]["asset"],
-                                 ugv_label=meta["ugv"]["label"])
+                                 ugv_label=meta["ugv"]["label"], jammers=jammers_for(scenario.scenario_key))
     live.generation += 1
     live.running = running
     live.speed = 1
@@ -96,13 +98,19 @@ def control(mission_id, owner, body):
     elif action == "speed":
         if type(body.get("value")) is not int or body["value"] not in (1, 2, 4): raise ValueError("Velocidad inválida")
         live.speed = body["value"]
-    elif action == "automatic":
-        if type(body.get("value")) is not bool: raise ValueError("Modo inválido")
-        live.state["automatic"] = body["value"]
-        emit(live.state, "SYSTEM", "Eventos automáticos" if body["value"] else "Control manual de interferencia")
-    elif action in {"interference", "restore"}:
-        live.state["automatic"] = False
-        engine.set_interference(live.state, 0 if action == "restore" else body.get("value"))
+    elif action == "restore":
+        live.state = engine.restore_jammers(live.state)
+    elif action == "set_jammer":
+        value = body.get("value")
+        if not isinstance(value, dict) or set(value) != {"id", "active"}: raise ValueError("Jammer inválido")
+        if type(value["active"]) is not bool: raise ValueError("Estado inválido")
+        live.state = engine.set_jammer(live.state, value["id"], value["active"])
+    elif action == "set_control_mode":
+        value = body.get("value")
+        if value not in CONTROL_MODES: raise ValueError("Modo de control inválido")
+        if live.state.get("control_mode") != value:
+            live.state["control_mode"] = value
+            emit(live.state, "MISSION", f"Modo de control del dron: {value.replace('_', ' ')}")
     elif action == "set_checkpoint":
         if live.running or live.state["phase"] != Phase.PREPARING:
             raise ValueError("Los checkpoints solo pueden editarse antes de iniciar la misión")

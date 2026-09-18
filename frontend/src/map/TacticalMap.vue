@@ -175,12 +175,18 @@ function onCheckpointUp() {
             <circle :cx="state.route[4].x" :cy="state.route[4].y" r="135" />
             <circle :cx="state.route[4].x" :cy="state.route[4].y" r="138" stroke-dasharray="1 12" />
           </g>
-          <g v-if="state.interference > 0" class="interference-zone">
-            <circle :cx="state.route[3].x" :cy="state.route[3].y" r="120" fill="url(#disruption)" />
-            <circle :cx="state.route[3].x" :cy="state.route[3].y" r="85" />
-            <circle :cx="state.route[3].x" :cy="state.route[3].y" r="120" stroke-dasharray="3 9" />
-            <path :transform="`translate(${state.route[3].x - 8} ${state.route[3].y})`" d="M0 0h16m-8-8v16" />
-            <text :x="state.route[3].x - 60" :y="state.route[3].y + 140">INTERFERENCIA {{ state.interference }}%</text>
+          <g v-for="jammer in state.jammers || []" :key="jammer.id" :class="['jammer', jammer.kind.toLowerCase(), { active: jammer.active }]">
+            <template v-if="jammer.active">
+              <circle :cx="jammer.x" :cy="jammer.y" r="120" fill="url(#disruption)" />
+              <circle :cx="jammer.x" :cy="jammer.y" r="85" />
+              <circle :cx="jammer.x" :cy="jammer.y" r="120" stroke-dasharray="3 9" />
+            </template>
+            <g :transform="`translate(${jammer.x} ${jammer.y})`">
+              <circle r="14" class="jammer-halo" />
+              <path v-if="jammer.kind === 'GROUND'" d="M0-11 9 8H-9Z M0-4V9M-6 9H6" class="jammer-icon" />
+              <path v-else d="M0-10 3-2 11 1 11 3 3 1 3 6 6 8 6 9 0 7-6 9-6 8-3 6-3 1-11 3-11 1-3-2Z" class="jammer-icon" />
+              <text x="16" y="4">{{ jammer.label }}<tspan>{{ jammer.active ? " · ACTIVO" : "" }}</tspan></text>
+            </g>
           </g>
           <polyline :points="route" class="planned-route" />
           <polyline

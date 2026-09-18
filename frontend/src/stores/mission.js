@@ -162,3 +162,16 @@ export const phaseLabel = (phase) =>
   })[phase] || phase;
 export const clock = (seconds) =>
   `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
+export const CONTROL_MODES = [
+  { id: "AUTONOMOUS_ROUTE", label: "AUTÓNOMO", detail: "Ruta de vuelo precargada" },
+  { id: "MANUAL_REMOTE", label: "MANUAL", detail: "Control remoto a distancia" },
+  { id: "AUTONOMOUS_AI_VISION", label: "AUTÓNOMO IA", detail: "Video procesado con modelo interno" },
+];
+export const controlModeLabel = (mode) =>
+  CONTROL_MODES.find((m) => m.id === mode)?.label || "CONTROL DESCONOCIDO";
+export const COMM_TYPES = [
+  { id: "RF-PRIMARY", label: "RF" },
+  { id: "RF-DIRECTIONAL", label: "RF DIRECCIONAL" },
+  { id: "SATELLITE-FALLBACK", label: "SATELITAL" },
+  { id: "OPTICAL-LINK", label: "LÁSER" },
+];

@@ -39,7 +39,8 @@ class APITests(TestCase):
         self.login(other)
         second = other.get("/cyberar/api/state/").json()
         self.assertNotEqual(first["mission_id"], second["mission_id"])
-        self.post("control", {"action":"interference", "value":77})
+        jammer_id = first["jammers"][0]["id"]
+        self.post("control", {"action":"set_jammer", "value":{"id": jammer_id, "active": True}})
         self.assertEqual(other.get("/cyberar/api/state/").json()["interference"], 0)
 
     def test_clock_pause_reset_and_snapshot_frequency(self):
@@ -77,7 +78,7 @@ class APITests(TestCase):
 
     def test_unknown_actions_invalid_json_and_speed(self):
         self.login()
-        for payload in [[], {"action":"shell"}, {"action":"speed", "value":True}, {"action":"speed", "value":99}, {"action":"interference", "value":-20}, {"action":"automatic", "value":"false"}]:
+        for payload in [[], {"action":"shell"}, {"action":"speed", "value":True}, {"action":"speed", "value":99}, {"action":"set_jammer", "value":{"id": "unknown", "active": True}}, {"action":"set_control_mode", "value":"WALKING"}]:
             self.assertEqual(self.post("control", payload).status_code, 400)
         self.assertEqual(self.client.get("/cyberar/api/control/").status_code, 405)
 
@@ -107,11 +108,13 @@ class APITests(TestCase):
 
     def test_can_controls_are_session_scoped_and_independent_from_rf(self):
         self.login()
-        self.post("control", {"action": "interference", "value": 55})
+        original = self.client.get("/cyberar/api/state/").json()
+        jammer_id = original["jammers"][0]["id"]
+        self.post("control", {"action": "set_jammer", "value": {"id": jammer_id, "active": True}})
         started = self.post("control", {"action": "can_start"}).json()
         self.assertEqual(started["ugv"]["level"], 15)
         increased = self.post("control", {"action": "can_increase"}).json()
         self.assertEqual(increased["ugv"]["level"], 45)
         restored = self.post("control", {"action": "can_restore"}).json()
         self.assertEqual(restored["ugv"]["level"], 0)
-        self.assertEqual(restored["interference"], 55)
+        self.assertGreater(restored["interference"], 0)

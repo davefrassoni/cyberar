@@ -246,15 +246,15 @@ también se aceptan como Secrets):
 
 | Tipo | Nombre | Valor |
 | --- | --- | --- |
-| Variable | `SSH_HOST` | `72.61.27.44` (IP del VPS, sin proxy HTTP) |
-| Variable | `SSH_PORT` | `182` |
+| Variable | `SSH_HOST` | IP del VPS, sin proxy HTTP (no publicar el valor real en el repo) |
+| Variable | `SSH_PORT` | Puerto SSH del VPS (no publicar el valor real en el repo) |
 | Variable | `SSH_USER` | `root` (requerido por el instalador existente) |
 | Secret | `SSH_PRIVATE_KEY` | Clave privada SSH completa, sin passphrase, autorizada en el VPS |
-| Secret | `SSH_KNOWN_HOSTS` | Entrada verificada de la clave pública del servidor para `[72.61.27.44]:182` |
+| Secret | `SSH_KNOWN_HOSTS` | Entrada verificada de la clave pública del servidor para `[<IP del VPS>]:<puerto SSH>` |
 
 Para obtener la entrada de host desde una conexión SSH ya confiable, ejecutar en
 el VPS `cat /etc/ssh/ssh_host_ed25519_key.pub` y anteponer
-`[72.61.27.44]:182 ` a la línea resultante. No es una clave privada.
+`[<IP del VPS>]:<puerto SSH> ` a la línea resultante. No es una clave privada.
 No usar `ssh-keyscan` sin verificar la identidad del servidor.
 
 El VPS debe estar provisionado, con `/etc/cyberar.env` existente, usuario `deploy`,

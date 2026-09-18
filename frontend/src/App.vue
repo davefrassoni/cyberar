@@ -8,6 +8,7 @@ import {
   phaseLabel,
   clock,
   requestDebrief,
+  controlModeLabel,
 } from "./stores/mission";
 import DebriefView from "./debrief/DebriefView.vue";
 import TacticalMap from "./map/TacticalMap.vue";
@@ -201,9 +202,7 @@ onMounted(bootstrap);
       <footer class="system-footer">
         <span
           ><i class="dot" /> MOTOR DE SIMULACIÓN V1 <b>/</b>
-          {{
-            store.state.automatic ? "ESCENARIO AUTOMÁTICO" : "CONTROL MANUAL"
-          }}</span
+          {{ controlModeLabel(store.state.control_mode) }}</span
         ><span
           >DETECTAR <b>→</b> ANALIZAR <b>→</b> ADAPTAR <b>→</b> CONTINUAR
           MISIÓN</span

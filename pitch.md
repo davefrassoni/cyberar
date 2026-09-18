@@ -39,7 +39,7 @@ Guion minuto a minuto para demostrar en vivo las funcionalidades del simulador: 
 **HACER:**
 1. Click en el selector de flota → **3×**.
 2. Señalar que ahora hay `UAV-01`, `UAV-02`, `UAV-03` en el mapa.
-3. Abrir el panel **RED TEAM** → sección **FALLA DE SENSOR** → elegir `UAV-02`, nivel alto (~80%), click **APLICAR FALLA**.
+3. Abrir **△ RED TEAM** (se abre como panel centrado) → en la sección de falla de sensor (abajo del todo, solo visible con flota &gt;1) elegir `UAV-02`, nivel alto (~80%), click **APLICAR FALLA**.
 
 **DECIR:** "Le acabo de inyectar una falla simulada al sensor de altitud de UAV-02. Los tres drones van a volar exactamente la misma trayectoria — pero uno de ellos va a *mentir* sobre su altitud. Guardénse ese dato, porque en un minuto el sistema lo va a encontrar solo."
 
@@ -54,12 +54,13 @@ Guion minuto a minuto para demostrar en vivo las funcionalidades del simulador: 
 **DECIR:** "Mientras vuela, miremos comunicaciones. El dron no depende de un solo enlace: tiene RF primario, RF direccional, óptico y satelital de respaldo."
 
 **HACER:**
-1. En el panel de comunicaciones, click sobre un canal distinto (por ej. **SATELLITE-FALLBACK**) para mostrar que se puede conmutar manualmente en cualquier momento.
-2. Abrir **RED TEAM** → click **DEGRADAR RF** (o **INTERRUMPIR RF**).
+1. Señalar los botones grandes **ENLACE CON EL DRON** (RF / RF DIRECCIONAL / SATELITAL / LÁSER) debajo de los controles de demo — click sobre uno distinto al activo (por ej. **SATELITAL**) para mostrar que se puede conmutar manualmente en cualquier momento.
+2. Abrir **△ RED TEAM** → click **📡 JAMMING RF** (el botón se pone rojo/activo; en el mapa aparece la fuente terrestre encubierta con su zona de disrupción).
 3. Señalar el **popup de alerta** que aparece: degradación detectada, canal recomendado, cuenta atrás de 3 segundos.
 4. Dejar que el countdown llegue a cero (conmuta solo) — o, si querés mostrar el control manual, click **CANCELAR** y luego **CONMUTAR AHORA**.
+5. Volver a **RED TEAM** → click **📡 JAMMING RF** de nuevo para desactivarlo (o **✓ RESTAURAR TODOS LOS ENLACES Y SENSORES**).
 
-**DECIR:** "Esto es la resiliencia en acción: el sistema no solo detecta la degradación, recomienda una acción concreta y la ejecuta automáticamente si nadie decide lo contrario en tres segundos — pero el operador humano siempre puede cancelar."
+**DECIR:** "Esto es la resiliencia en acción: la interferencia no es un slider abstracto — viene de una fuente real posicionada en el mapa, a una distancia concreta del dron. El sistema detecta la degradación, recomienda una acción concreta y la ejecuta automáticamente si nadie decide lo contrario en tres segundos — pero el operador humano siempre puede cancelar."
 
 ## 3:00–3:30 — Capa interna: anomalía CAN (feature existente, repaso rápido)
 
@@ -97,6 +98,7 @@ Guion minuto a minuto para demostrar en vivo las funcionalidades del simulador: 
 
 ## Plan B / contingencias
 
+- **Si un solo jammer no alcanza a degradar el canal activo** (la interferencia depende de la distancia real al UAV, así que cuanto más lejos de la base esté volando, menos pega): activar también **✈ JAMMING C2** además de **📡 JAMMING RF** — con los dos activos el popup dispara seguro. Practicá el timing una vez para saber en qué punto del vuelo conviene activarlo.
 - **Si el broker DF AI está apagado:** el debriefing y la anomalía CAN muestran igual el insight local — decilo como feature ("nunca depende de que un modelo externo responda a tiempo"), no como limitación.
 - **Si el drag de checkpoints no agarra bien en el mouse/trackpad del lugar:** mostralo de todos modos, es tolerante a reintentos; si falla, seguí — no es bloqueante para el resto del guion.
 - **Si el tiempo se acorta:** el bloque recortable es el de "capa interna CAN" (3:00–3:30) — ya es una feature conocida, no la novedad de esta versión. El debriefing (4:40) es el cierre que nunca hay que sacrificar.

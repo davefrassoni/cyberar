@@ -64,8 +64,9 @@ class ScenarioControlTests(TestCase):
         self.assertEqual(response.json()["active_channel"], "SATELLITE-FALLBACK")
 
     def test_set_channel_rejects_unavailable(self):
-        self.post({"action": "automatic", "value": False})
-        self.post({"action": "interference", "value": 100})
+        original = self.client.get("/cyberar/api/state/").json()
+        jammer_id = original["jammers"][0]["id"]
+        self.post({"action": "set_jammer", "value": {"id": jammer_id, "active": True}})
         state = self.client.get("/cyberar/api/state/").json()
         target = next(c for c in state["channels"] if c["id"] == "RF-PRIMARY")
         self.assertFalse(target["available"])
@@ -86,3 +87,22 @@ class ScenarioControlTests(TestCase):
         self.assertLess(response.json()["drones"][1]["altitude"], baseline)
         clean = self.post({"action": "clear_drone_faults"}).json()
         self.assertEqual(clean["drones"][1]["altitude"], baseline)
+
+    def test_set_jammer_toggles_interference_and_validates(self):
+        state = self.client.get("/cyberar/api/state/").json()
+        jammer_id = state["jammers"][0]["id"]
+        for value in [{"id": jammer_id}, {"id": jammer_id, "active": "yes"}, {"id": "unknown", "active": True}]:
+            with self.subTest(value=value):
+                self.assertEqual(self.post({"action": "set_jammer", "value": value}).status_code, 400)
+        activated = self.post({"action": "set_jammer", "value": {"id": jammer_id, "active": True}}).json()
+        self.assertTrue(activated["jammers"][0]["active"])
+        self.assertGreater(activated["interference"], 0)
+        restored = self.post({"action": "restore"}).json()
+        self.assertFalse(restored["jammers"][0]["active"])
+        self.assertEqual(restored["interference"], 0)
+
+    def test_set_control_mode_switches_and_rejects_invalid(self):
+        self.assertEqual(self.post({"action": "set_control_mode", "value": "TELEPATHIC"}).status_code, 400)
+        response = self.post({"action": "set_control_mode", "value": "MANUAL_REMOTE"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["control_mode"], "MANUAL_REMOTE")

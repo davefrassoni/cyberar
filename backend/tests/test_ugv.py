@@ -35,7 +35,8 @@ class UGVTests(TestCase):
         state = self.engine.advance(state, 10)
         self.assertEqual(state['ugv']['level'], 0)
         self.assertEqual(state['ugv']['detector']['score'], 12)
-        self.assertNotEqual(interference, state['interference'])
+        # CAN controls never touch RF interference — no jammer was ever activated.
+        self.assertEqual(interference, state['interference'])
 
     def test_detector_uses_evidence_not_scenario(self):
         detector = CANAnomalyDetector()
