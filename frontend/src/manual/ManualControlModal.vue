@@ -1,17 +1,14 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, ref } from "vue";
 import { command } from "../stores/mission";
-import { loadManualFeedVideo, MANUAL_FEED_SHARE_URL } from "../services/manualFeed";
+import { MANUAL_FEED_URL } from "../services/manualFeed";
 
 const props = defineProps({ state: Object });
 const emit = defineEmits(["close"]);
 
-const videoUrl = ref("");
+const videoEl = ref(null);
 const loading = ref(true);
-const progress = ref(0);
 const error = ref("");
-let objectUrl = "";
-let controller = null;
 
 const drone = computed(() => props.state.drones?.[0] || {});
 // Dial: 0m -> -120°, 1500m -> 120°, tope visual de la escala del altímetro.
@@ -23,53 +20,46 @@ const speedAngle = computed(() =>
   Math.max(-120, Math.min(120, (drone.value.speed || 0) / 160 * 240 - 120)),
 );
 
-async function load() {
-  loading.value = true;
-  progress.value = 0;
-  error.value = "";
-  controller = new AbortController();
-  try {
-    objectUrl = await loadManualFeedVideo(controller.signal, (pct) => (progress.value = pct));
-    videoUrl.value = objectUrl;
-  } catch (err) {
-    if (err.name !== "AbortError") error.value = err.message || "No se pudo cargar el video.";
-  } finally {
-    loading.value = false;
-  }
+function onLoadedMetadata() {
+  // Arranca desde la mitad del clip: al principio el UAV real está en tierra,
+  // y acá se busca ambientar la cabina en pleno vuelo.
+  const video = videoEl.value;
+  if (video && Number.isFinite(video.duration)) video.currentTime = video.duration / 2;
+  loading.value = false;
 }
-
+function onCanPlay() {
+  loading.value = false;
+}
+function onError() {
+  loading.value = false;
+  error.value = "No se pudo cargar el video de referencia.";
+}
 function releaseAutonomy() {
   command("set_control_mode", "AUTONOMOUS_ROUTE");
   emit("close");
 }
-
-onMounted(load);
-onBeforeUnmount(() => {
-  controller?.abort();
-  if (objectUrl) URL.revokeObjectURL(objectUrl);
-});
 </script>
 <template>
   <div class="modal-backdrop cockpit-backdrop" role="dialog" aria-modal="true" aria-label="Control manual del dron">
     <section class="cockpit">
       <video
-        v-if="videoUrl"
-        :src="videoUrl"
+        ref="videoEl"
+        :src="MANUAL_FEED_URL"
         class="cockpit-feed"
         autoplay
         muted
         loop
         playsinline
+        preload="auto"
+        @loadedmetadata="onLoadedMetadata"
+        @canplay="onCanPlay"
+        @error="onError"
       />
-      <div v-else class="cockpit-feed cockpit-feed-placeholder">
-        <template v-if="loading">
-          <span class="loader" />
-          <p class="cockpit-progress-label">CARGANDO FEED{{ progress ? ` · ${progress}%` : "…" }}</p>
-          <div class="cockpit-progress-track"><i :style="{ width: progress + '%' }" /></div>
-        </template>
-        <p v-else>
+      <div v-if="loading || error" class="cockpit-feed-placeholder">
+        <span v-if="loading && !error" class="loader" />
+        <p v-else-if="error">
           ⚠ {{ error }}
-          <a :href="MANUAL_FEED_SHARE_URL" target="_blank" rel="noopener">Abrir video en otra pestaña</a>
+          <a :href="MANUAL_FEED_URL" target="_blank" rel="noopener">Abrir video en otra pestaña</a>
         </p>
       </div>
       <div class="cockpit-vignette" />

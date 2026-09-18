@@ -42,6 +42,24 @@ if not DEBUG and (len(CYBERAR_PASSWORD) < 16 or CYBERAR_PASSWORD == "admin"):
     raise ImproperlyConfigured("Configurá una contraseña de producción de al menos 16 caracteres")
 FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
 
+# Public demo login (default admin/admin) — deliberately weak, always allowed
+# even in production, separate from CYBERAR_USER/PASSWORD above. Missions it
+# creates are flagged ai_disabled so a visitor never consumes the single
+# shared DF AI flight slot meant for the presenter's own live demo.
+CYBERAR_DEMO_ENABLED = os.getenv("CYBERAR_DEMO_ENABLED", "true").lower() == "true"
+CYBERAR_DEMO_USER = os.getenv("CYBERAR_DEMO_USER", "admin")
+CYBERAR_DEMO_PASSWORD = os.getenv("CYBERAR_DEMO_PASSWORD", "admin")
+
+# Video de referencia mostrado en la cabina de "control manual": un archivo
+# compartido públicamente desde DF Drive, proxeado por el backend (en vez de
+# fetch directo del navegador) porque el share sirve octet-stream/attachment
+# y el navegador necesita Content-Type video/* + soporte de Range para
+# reproducirlo — y para evitar CORS/CSP cuando esta app no comparte origen
+# con davefrassoni.com (desarrollo local).
+CYBERAR_MANUAL_FEED_URL = os.getenv(
+    "CYBERAR_MANUAL_FEED_URL", "https://davefrassoni.com/drive/s/Bz05g6mSo_zJqeky0zeJzg"
+).rstrip("/")
+
 CYBERAR_CAN_THRESHOLD = int(os.getenv("CYBERAR_CAN_THRESHOLD", "80"))
 if not 40 <= CYBERAR_CAN_THRESHOLD <= 99:
     raise ImproperlyConfigured("CYBERAR_CAN_THRESHOLD debe estar entre 40 y 99")

@@ -51,6 +51,32 @@ class DebriefTests(TestCase):
         self.assertEqual(debrief_state["result"]["suspect_component"], "ALTITUDE_SENSOR")
         self.assertGreater(len(debrief_state["series"]), 0)
 
+    @override_settings(CYBERAR_AI_ENABLED=True, DF_AI_TOKEN="producer-test", DF_AI_CALLBACK_TOKEN="callback-test",
+                        CYBERAR_DEMO_ENABLED=True, CYBERAR_DEMO_USER="admin", CYBERAR_DEMO_PASSWORD="admin")
+    @patch("mission.debrief.close_old_connections")
+    @patch("mission.debrief.DebriefAIClient.submit")
+    def test_demo_login_debrief_never_reserves_the_shared_flight(self, submit, close):
+        demo_client = Client(enforce_csrf_checks=True)
+        csrf = demo_client.get("/cyberar/api/session/").json()["csrf"]
+        demo_client.post("/cyberar/api/login/", json.dumps({"username": "admin", "password": "admin"}),
+                          content_type="application/json", HTTP_X_CSRFTOKEN=csrf)
+
+        def demo_post(body):
+            token = demo_client.get("/cyberar/api/session/").json()["csrf"]
+            return demo_client.post("/cyberar/api/control/", json.dumps(body), content_type="application/json", HTTP_X_CSRFTOKEN=token)
+
+        for _ in range(2): demo_post({"action": "add_drone"})
+        demo_post({"action": "speed", "value": 4})
+        state = demo_post({"action": "start"}).json()
+        for _ in range(200): tick(state["mission_id"])
+        response = demo_post({"action": "request_debrief"})
+        self.assertEqual(response.status_code, 200)
+        flight = DebriefFlight.objects.get()
+        self.assertEqual(flight.status, "DONE")
+        self.assertEqual(flight.source, "LOCAL")
+        debrief.process()
+        submit.assert_not_called()
+
     @override_settings(CYBERAR_AI_ENABLED=True, DF_AI_TOKEN="producer-test", DF_AI_CALLBACK_TOKEN="callback-test")
     @patch("mission.debrief.close_old_connections")
     @patch("mission.debrief.DebriefAIClient.submit")

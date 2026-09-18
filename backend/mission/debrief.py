@@ -89,11 +89,17 @@ def request(live):
     snapshot = snapshot_for(live.mission)
     result = local_insight(snapshot)
     now = timezone.now()
+    # A demo-login mission (ai_disabled) never reserves the shared DF AI
+    # slot: land straight on "DONE" with only the local insight, so _reserve()
+    # (status == "PENDING") never picks it up for the presenter's real demo.
+    status = "DONE" if live.mission.ai_disabled else "PENDING"
     DebriefFlight.objects.update_or_create(pk=1, defaults={
         "mission": live.mission, "generation": live.generation, "key": "cyberar-debrief-" + str(uuid.uuid4()),
-        "job_id": "", "status": "PENDING", "snapshot": snapshot, "result": result, "source": "LOCAL",
+        "job_id": "", "status": status, "snapshot": snapshot, "result": result, "source": "LOCAL",
         "attempts": 0, "next_attempt": now, "requested_at": now})
-    emit(live.state, "DF AI", "Debriefing solicitado · insight local instantáneo, análisis DF AI en curso")
+    message = "Debriefing solicitado · insight local instantáneo" if live.mission.ai_disabled else \
+        "Debriefing solicitado · insight local instantáneo, análisis DF AI en curso"
+    emit(live.state, "DF AI", message)
 
 
 class DebriefAIClient:

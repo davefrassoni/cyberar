@@ -42,7 +42,7 @@ def reserve():
     flight = AIFlight.objects.select_for_update().filter(pk=1).first()
     if flight and flight.status != "DONE":
         return flight if flight.status == "PENDING" and flight.attempts < 3 and flight.next_attempt <= timezone.now() else None
-    for live in MissionState.objects.filter(running=True).order_by("mission_id"):
+    for live in MissionState.objects.filter(running=True, mission__ai_disabled=False).order_by("mission_id"):
         ugv = live.state.get("ugv", {})
         analysis = ugv.get("analysis", {})
         if analysis.get("status") != "PENDING": continue

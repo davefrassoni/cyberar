@@ -16,6 +16,12 @@ class Mission(models.Model):
     owner_session = models.CharField(max_length=40, db_index=True)
     scenario = models.ForeignKey(DemoScenario, on_delete=models.PROTECT)
     created_at = models.DateTimeField(auto_now_add=True)
+    # True for sessions logged in with the public CYBERAR_DEMO_USER/PASSWORD
+    # pair (default admin/admin) instead of the real production credential.
+    # Missions owned by them never reserve the single shared DF AI flight
+    # slot (AIFlight/DebriefFlight), so a visitor poking at the public demo
+    # login can't starve the presenter's own live demo of that shared slot.
+    ai_disabled = models.BooleanField(default=False)
 
 
 class MissionState(models.Model):

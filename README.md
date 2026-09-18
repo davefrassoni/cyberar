@@ -82,15 +82,17 @@ Para HMR, `npm run dev --prefix frontend` desde la raíz y abrir `http://localho
 | `DJANGO_ALLOWED_HOSTS` | Hosts separados por comas |
 | `DJANGO_CSRF_TRUSTED_ORIGINS` | Orígenes completos HTTPS; también allowlist exacta de WS |
 | `DATABASE_URL` | PostgreSQL en producción; SQLite local |
-| `CYBERAR_USER`, `CYBERAR_PASSWORD` | Credenciales verificadas solamente por el backend |
+| `CYBERAR_USER`, `CYBERAR_PASSWORD` | Credenciales reales, verificadas solamente por el backend; en producción `CYBERAR_PASSWORD` debe tener ≥16 caracteres y no puede ser `admin` |
+| `CYBERAR_DEMO_ENABLED`, `CYBERAR_DEMO_USER`, `CYBERAR_DEMO_PASSWORD` | Login público separado (default `admin`/`admin`), permitido incluso en producción a diferencia del par de arriba. Sus misiones nunca reservan el vuelo único de DF AI (CAN ni debriefing) |
 | `CYBERAR_SESSION_SECONDS` | Duración de sesión, 7200 por defecto |
 | `CYBERAR_DEMO_DURATION` | Segundos de misión, 150 por defecto; mínimo 30 |
 | `CYBERAR_RUNNER_LOCK` | Ruta del lock local cuando se usa SQLite; PostgreSQL utiliza advisory lock |
 | `CYBERAR_DEMO_MODE` | Reservada; esta aplicación siempre es un simulador |
-| `CYBERAR_AI_ENABLED` | Reservada, mantener `false` en esta iteración |
-| `CYBERAR_AI_TIMEOUT` | Reservada para timeout del futuro cliente |
-| `DF_AI_URL`, `DF_AI_TOKEN` | Reservadas para el broker existente; no se utilizan todavía |
-| `DF_AI_PRIORITY` | Reservada; la siguiente implementación debe fijar `1` |
+| `CYBERAR_AI_ENABLED` | Habilita el `DFAIClient` (análisis CAN + insight de debriefing) contra el broker DF AI; `false` usa siempre el respaldo local |
+| `CYBERAR_AI_TIMEOUT` | Timeout en segundos del cliente DF AI, máx. 30 |
+| `DF_AI_URL`, `DF_AI_TOKEN`, `DF_AI_CALLBACK_TOKEN`, `DF_AI_HOST` | Broker DF AI: URL, token de producer y de callback, y Host explícito (proxy) |
+| `DF_AI_PRIORITY` | Prioridad de la cola del broker; `1` para el análisis CAN en tiempo real |
+| `CYBERAR_MANUAL_FEED_URL` | Share público de DF Drive con el video de la cabina de control manual, proxeado por `/cyberar/api/manual-feed/` |
 
 No usar prefijos `VITE_` para secretos. Ninguna credencial se incluye en el bundle.
 

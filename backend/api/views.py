@@ -29,7 +29,7 @@ def asset(request, name):
 @require_GET
 @authenticated
 def state(request):
-    mission = ensure_mission(request.session.session_key)
+    mission = ensure_mission(request.session.session_key, request.session.get("cyberar_ai_disabled", False))
     response = JsonResponse(serialize(mission.live))
     response["Cache-Control"] = "no-store"
     return response
@@ -38,7 +38,7 @@ def state(request):
 @require_GET
 @authenticated
 def debrief_state(request):
-    mission = ensure_mission(request.session.session_key)
+    mission = ensure_mission(request.session.session_key, request.session.get("cyberar_ai_disabled", False))
     response = JsonResponse(debrief.serialize(mission))
     response["Cache-Control"] = "no-store"
     return response
@@ -52,7 +52,7 @@ def command(request):
     try:
         body = json.loads(request.body)
         if not isinstance(body, dict): raise ValueError("Solicitud inválida")
-        mission = ensure_mission(request.session.session_key)
+        mission = ensure_mission(request.session.session_key, request.session.get("cyberar_ai_disabled", False))
         return JsonResponse(control(mission.id, request.session.session_key, body))
     except (ValueError, TypeError) as error:
         return JsonResponse({"detail": str(error)}, status=400)

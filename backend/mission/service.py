@@ -30,13 +30,13 @@ def _needs_repair(state):
 
 
 @transaction.atomic
-def ensure_mission(session_key):
+def ensure_mission(session_key, ai_disabled=False):
     # A session row serializes simultaneous first requests from multiple tabs.
     Session.objects.select_for_update().get(session_key=session_key)
     mission = Mission.objects.filter(owner_session=session_key).first()
     if mission is None:
         scenario = DemoScenario.objects.create(duration=settings.CYBERAR_DEMO_DURATION, configuration={"engine": "atlantic-v1"})
-        mission = Mission.objects.create(owner_session=session_key, scenario=scenario)
+        mission = Mission.objects.create(owner_session=session_key, scenario=scenario, ai_disabled=ai_disabled)
         live = MissionState.objects.create(mission=mission, state=engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD))
         persist_events(live)
         snapshot(live)

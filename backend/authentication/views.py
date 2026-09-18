@@ -30,11 +30,20 @@ def login(request):
         return JsonResponse({"detail": "Solicitud inválida"}, status=400)
     valid_user = secrets.compare_digest(user.encode(), settings.CYBERAR_USER.encode())
     valid_password = secrets.compare_digest(password.encode(), settings.CYBERAR_PASSWORD.encode())
-    if not settings.CYBERAR_USER or not settings.CYBERAR_PASSWORD or not (valid_user and valid_password):
+    is_real = bool(settings.CYBERAR_USER and settings.CYBERAR_PASSWORD and valid_user and valid_password)
+    is_demo = bool(
+        settings.CYBERAR_DEMO_ENABLED
+        and secrets.compare_digest(user.encode(), settings.CYBERAR_DEMO_USER.encode())
+        and secrets.compare_digest(password.encode(), settings.CYBERAR_DEMO_PASSWORD.encode())
+    )
+    if not (is_real or is_demo):
         return JsonResponse({"detail": "Credenciales incorrectas"}, status=401)
     if not request.session.get("cyberar_authenticated"):
         request.session.flush()
     request.session["cyberar_authenticated"] = True
+    # Real credentials always win if they happen to coincide with the demo
+    # pair (e.g. local dev, where both default to admin/admin).
+    request.session["cyberar_ai_disabled"] = not is_real
     request.session.set_expiry(settings.SESSION_COOKIE_AGE)
     request.session.save()
     rotate_token(request)
