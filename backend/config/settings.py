@@ -52,8 +52,10 @@ FRONTEND_DIST = BASE_DIR.parent / "frontend" / "dist"
 
 # Public demo login (default admin/admin) — deliberately weak, always allowed
 # even in production, separate from CYBERAR_USER/PASSWORD above. Missions it
-# creates are flagged ai_disabled so a visitor never consumes the single
-# shared DF AI flight slot meant for the presenter's own live demo.
+# creates are flagged ai_disabled: DF AI stays enabled for them, but every
+# job they submit goes out at priority 3 (see vehicles.ai/mission.debrief),
+# so visitors get real analyses without competing with the presenter's own
+# live demo or other services sharing the same DF AI broker.
 CYBERAR_DEMO_ENABLED = os.getenv("CYBERAR_DEMO_ENABLED", "true").lower() == "true"
 CYBERAR_DEMO_USER = os.getenv("CYBERAR_DEMO_USER", "admin")
 CYBERAR_DEMO_PASSWORD = os.getenv("CYBERAR_DEMO_PASSWORD", "admin")

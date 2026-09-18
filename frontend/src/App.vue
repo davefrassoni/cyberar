@@ -30,6 +30,12 @@ async function submitLogin() {
   await login(username.value, password.value);
   password.value = "";
 }
+async function fillDemoAndLogin() {
+  if (!store.demo) return;
+  username.value = store.demo.user;
+  password.value = store.demo.password;
+  await submitLogin();
+}
 async function openDebrief() {
   await requestDebrief();
   showDebrief.value = true;
@@ -107,6 +113,13 @@ onMounted(bootstrap);
         <span class="eyebrow">ACCESO RESTRINGIDO / DEMOSTRACIÓN</span>
         <h2>Centro de operaciones</h2>
         <p>Identificate para acceder al simulador.</p>
+        <div v-if="store.demo" class="login-demo-hint">
+          <span>ACCESO RÁPIDO PARA PARTICIPANTES</span>
+          <p>Usuario <b>{{ store.demo.user }}</b> · Contraseña <b>{{ store.demo.password }}</b></p>
+          <button type="button" :disabled="store.busy" @click="fillDemoAndLogin">
+            INGRESAR COMO INVITADO →
+          </button>
+        </div>
         <label for="username">USUARIO</label
         ><input
           id="username"

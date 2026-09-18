@@ -38,9 +38,15 @@ class DemoLoginTests(TestCase):
     def test_wrong_credentials_still_rejected(self):
         self.assertEqual(self.post("login", {"username": "admin", "password": "wrong"}).status_code, 401)
 
+    def test_session_exposes_demo_credentials_only_when_enabled(self):
+        response = self.client.get("/cyberar/api/session/").json()
+        self.assertEqual(response["demo"], {"user": "admin", "password": "admin"})
+        with override_settings(CYBERAR_DEMO_ENABLED=False):
+            self.assertNotIn("demo", self.client.get("/cyberar/api/session/").json())
+
 
 @override_settings(CYBERAR_AI_ENABLED=True, DF_AI_TOKEN="producer-test", DF_AI_CALLBACK_TOKEN="callback-test")
-class AIDisabledMissionSkippedTests(TestCase):
+class AIDisabledMissionLowPriorityTests(TestCase):
     def _mission(self, ai_disabled):
         scenario = DemoScenario.objects.create()
         mission = Mission.objects.create(owner_session=uuid.uuid4().hex, scenario=scenario, ai_disabled=ai_disabled)
@@ -48,12 +54,19 @@ class AIDisabledMissionSkippedTests(TestCase):
             mission=mission, state=SimulationEngine().advance(SimulationEngine().initial(), 92), running=True,
         )
 
+    def test_priority_helper(self):
+        from vehicles.ai import _priority
+        scenario = DemoScenario.objects.create()
+        self.assertEqual(_priority(Mission(scenario=scenario, ai_disabled=True)), 3)
+        self.assertEqual(_priority(Mission(scenario=scenario, ai_disabled=False)), 1)
+
     @patch("vehicles.ai.close_old_connections")
     @patch("vehicles.ai.DFAIClient.submit")
-    def test_ai_disabled_mission_never_reserves_the_shared_flight(self, submit, close):
+    def test_ai_disabled_mission_still_reserves_the_shared_flight_at_p3(self, submit, close):
+        submit.return_value = str(uuid.uuid4())
         self._mission(ai_disabled=True)
         process()
-        submit.assert_not_called()
+        submit.assert_called_once()
 
     @patch("vehicles.ai.close_old_connections")
     @patch("vehicles.ai.DFAIClient.submit")

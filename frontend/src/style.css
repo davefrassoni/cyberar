@@ -1553,6 +1553,35 @@ aside {
   padding: 15px;
   font-size: 10px;
 }
+.login-demo-hint {
+  background: #0f1d18;
+  border: 1px solid #365549;
+  padding: 14px 16px;
+  margin: -8px 0 24px;
+}
+.login-demo-hint > span {
+  display: block;
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  color: #7fa892;
+  margin-bottom: 8px;
+}
+.login-demo-hint p {
+  font-size: 11px;
+  color: #b9e6d1;
+  margin: 0 0 12px;
+}
+.login-demo-hint p b {
+  color: var(--green);
+  font-weight: 600;
+}
+.login-demo-hint button {
+  width: 100%;
+  min-height: 36px;
+  font-size: 9px;
+  border-color: var(--green);
+  color: var(--green);
+}
 .login-note {
   display: flex;
   justify-content: space-between;

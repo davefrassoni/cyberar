@@ -10,6 +10,7 @@ export const store = reactive({
   lastFrame: 0,
   stale: false,
   debrief: null,
+  demo: null,
 });
 let socket,
   retry,
@@ -30,7 +31,9 @@ function apply(data) {
 }
 export async function bootstrap() {
   try {
-    store.authenticated = (await request("session")).authenticated;
+    const session = await request("session");
+    store.authenticated = session.authenticated;
+    store.demo = session.demo || null;
     if (store.authenticated) await loadMission();
   } catch (error) {
     store.error = error.message;

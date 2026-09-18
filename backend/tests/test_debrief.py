@@ -55,7 +55,8 @@ class DebriefTests(TestCase):
                         CYBERAR_DEMO_ENABLED=True, CYBERAR_DEMO_USER="admin", CYBERAR_DEMO_PASSWORD="admin")
     @patch("mission.debrief.close_old_connections")
     @patch("mission.debrief.DebriefAIClient.submit")
-    def test_demo_login_debrief_never_reserves_the_shared_flight(self, submit, close):
+    def test_demo_login_debrief_still_reserves_the_shared_flight_at_p3(self, submit, close):
+        submit.return_value = str(uuid.uuid4())
         demo_client = Client(enforce_csrf_checks=True)
         csrf = demo_client.get("/cyberar/api/session/").json()["csrf"]
         demo_client.post("/cyberar/api/login/", json.dumps({"username": "admin", "password": "admin"}),
@@ -72,10 +73,10 @@ class DebriefTests(TestCase):
         response = demo_post({"action": "request_debrief"})
         self.assertEqual(response.status_code, 200)
         flight = DebriefFlight.objects.get()
-        self.assertEqual(flight.status, "DONE")
+        self.assertEqual(flight.status, "PENDING")
         self.assertEqual(flight.source, "LOCAL")
         debrief.process()
-        submit.assert_not_called()
+        submit.assert_called_once()
 
     @override_settings(CYBERAR_AI_ENABLED=True, DF_AI_TOKEN="producer-test", DF_AI_CALLBACK_TOKEN="callback-test")
     @patch("mission.debrief.close_old_connections")
@@ -120,3 +121,24 @@ class DebriefTests(TestCase):
         response = self.client.get("/cyberar/api/debrief/")
         self.assertEqual(response.status_code, 200)
         self.assertNotIn({"legacy": "single-vehicle shape"}, [p.get("drones") for p in response.json()["series"]])
+
+    def test_priority_helper(self):
+        from mission.debrief import _priority
+        from mission.models import Mission, DemoScenario
+        scenario = DemoScenario.objects.create()
+        self.assertEqual(_priority(Mission(scenario=scenario, ai_disabled=True)), 3)
+        self.assertEqual(_priority(Mission(scenario=scenario, ai_disabled=False)), 2)
+
+    @override_settings(CYBERAR_AI_ENABLED=True, DF_AI_TOKEN="producer-test", DF_AI_CALLBACK_TOKEN="callback-test")
+    @patch("mission.debrief.close_old_connections")
+    @patch("mission.debrief.DebriefAIClient.submit")
+    def test_demo_login_mission_still_gets_a_real_debrief_job_at_low_priority(self, submit, close):
+        from mission.models import Mission
+        submit.return_value = str(uuid.uuid4())
+        mission_id = self.complete_mission_with_fleet(drones=2)
+        Mission.objects.filter(pk=mission_id).update(ai_disabled=True)
+        response = self.post({"action": "request_debrief"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(DebriefFlight.objects.get().status, "PENDING")
+        debrief.process()
+        submit.assert_called_once()

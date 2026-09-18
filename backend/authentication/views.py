@@ -9,7 +9,12 @@ from .security import rate_allowed
 
 @require_GET
 def session(request):
-    response = JsonResponse({"authenticated": bool(request.session.get("cyberar_authenticated")), "csrf": get_token(request)})
+    payload = {"authenticated": bool(request.session.get("cyberar_authenticated")), "csrf": get_token(request)}
+    if settings.CYBERAR_DEMO_ENABLED:
+        # Deliberately public — see the comment on CYBERAR_DEMO_USER/PASSWORD:
+        # showing it on the login screen is the point, not a leak.
+        payload["demo"] = {"user": settings.CYBERAR_DEMO_USER, "password": settings.CYBERAR_DEMO_PASSWORD}
+    response = JsonResponse(payload)
     response["Cache-Control"] = "no-store"
     return response
 

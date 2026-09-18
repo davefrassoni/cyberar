@@ -85,26 +85,26 @@ def local_insight(snapshot):
             "confidence": confidence, "findings": findings[:5]}
 
 
+def _priority(mission):
+    # Public demo-login missions never get skipped, but always sit behind
+    # the presenter's own missions and other services sharing the broker.
+    return 3 if mission.ai_disabled else 2
+
+
 def request(live):
     snapshot = snapshot_for(live.mission)
     result = local_insight(snapshot)
     now = timezone.now()
-    # A demo-login mission (ai_disabled) never reserves the shared DF AI
-    # slot: land straight on "DONE" with only the local insight, so _reserve()
-    # (status == "PENDING") never picks it up for the presenter's real demo.
-    status = "DONE" if live.mission.ai_disabled else "PENDING"
     DebriefFlight.objects.update_or_create(pk=1, defaults={
         "mission": live.mission, "generation": live.generation, "key": "cyberar-debrief-" + str(uuid.uuid4()),
-        "job_id": "", "status": status, "snapshot": snapshot, "result": result, "source": "LOCAL",
+        "job_id": "", "status": "PENDING", "snapshot": snapshot, "result": result, "source": "LOCAL",
         "attempts": 0, "next_attempt": now, "requested_at": now})
-    message = "Debriefing solicitado · insight local instantáneo" if live.mission.ai_disabled else \
-        "Debriefing solicitado · insight local instantáneo, análisis DF AI en curso"
-    emit(live.state, "DF AI", message)
+    emit(live.state, "DF AI", f"Debriefing solicitado · insight local instantáneo, análisis DF AI P{_priority(live.mission)} en curso")
 
 
 class DebriefAIClient:
     def submit(self, flight):
-        payload = {"job_type": "prompt_json", "priority": 2, "idempotency_key": flight.key,
+        payload = {"job_type": "prompt_json", "priority": _priority(flight.mission), "idempotency_key": flight.key,
                    "payload": {"kind": "cyberar_fleet_debrief", "messages": [
                        {"role": "system", "content": "Analizá telemetría comparada de una flota de drones en una simulación software que voló la misma ruta. Respondé únicamente un objeto JSON con exactamente las propiedades del siguiente JSON Schema. overall_assessment y findings deben estar en español argentino; los enums deben conservar sus valores exactos. No agregues campos adicionales. No ejecutás acciones. JSON Schema: " + json.dumps(SCHEMA)},
                        {"role": "user", "content": json.dumps(flight.snapshot)}],

@@ -23,9 +23,15 @@ SCHEMA = {"type": "object", "additionalProperties": False, "required": ["severit
     "recommended_action": {"type": "string", "enum": sorted(ACTIONS)}}}
 
 
+def _priority(mission):
+    # Public demo-login missions never get skipped, but always sit behind
+    # the presenter's own missions and other services sharing the broker.
+    return 3 if mission.ai_disabled else 1
+
+
 class DFAIClient:
     def submit(self, flight):
-        payload = {"job_type": "prompt_json", "priority": 1, "idempotency_key": flight.key,
+        payload = {"job_type": "prompt_json", "priority": _priority(flight.mission), "idempotency_key": flight.key,
                    "payload": {"kind": "cyberar_can_anomaly", "messages": [{"role": "system", "content": "Analizá evidencia de una simulación software de UGV. Respondé únicamente un objeto JSON con exactamente las propiedades del siguiente JSON Schema. assessment debe estar en español argentino; los enums deben conservar sus valores exactos. No agregues timestamp ni campos adicionales. No ejecutás acciones. Una señal válida no necesariamente contiene información confiable. JSON Schema: " + json.dumps(SCHEMA)},
                                              {"role": "user", "content": json.dumps(flight.snapshot)}],
                                "response_schema": SCHEMA, "temperature": 0, "num_predict": 500}}
@@ -51,7 +57,7 @@ def reserve():
             # would otherwise block CAN analysis app-wide forever.
             AIFlight.objects.filter(pk=1, key=flight.key, status="PENDING").update(status="DONE")
         return None
-    for live in MissionState.objects.filter(running=True, mission__ai_disabled=False).order_by("mission_id"):
+    for live in MissionState.objects.filter(running=True).order_by("mission_id"):
         ugv = live.state.get("ugv", {})
         analysis = ugv.get("analysis", {})
         if analysis.get("status") != "PENDING": continue
@@ -68,7 +74,7 @@ def reserve():
             "generation": live.generation, "incident": ugv["incident"], "key": "cyberar-"+str(uuid.uuid4()),
             "snapshot": snapshot, "status": "PENDING", "attempts": 0, "job_id": "", "next_attempt": timezone.now()})
         ugv["analysis"].update(status="SUBMITTING", source="DF AI")
-        emit(live.state, "DF AI", "Análisis CAN solicitado P1 · único vuelo")
+        emit(live.state, "DF AI", f"Análisis CAN solicitado P{_priority(live.mission)} · único vuelo")
         live.revision += 1
         live.save()
         from mission.service import persist_events

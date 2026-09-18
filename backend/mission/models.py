@@ -18,9 +18,12 @@ class Mission(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # True for sessions logged in with the public CYBERAR_DEMO_USER/PASSWORD
     # pair (default admin/admin) instead of the real production credential.
-    # Missions owned by them never reserve the single shared DF AI flight
-    # slot (AIFlight/DebriefFlight), so a visitor poking at the public demo
-    # login can't starve the presenter's own live demo of that shared slot.
+    # Missions owned by them still reserve the single shared DF AI flight
+    # slot (AIFlight/DebriefFlight), but always at the lowest broker priority
+    # (P3, see vehicles.ai._priority / mission.debrief._priority) so a
+    # visitor poking at the public demo login can see real DF AI analyses
+    # without starving the presenter's own live demo or other DF AI-backed
+    # services that share the same broker.
     ai_disabled = models.BooleanField(default=False)
 
 
