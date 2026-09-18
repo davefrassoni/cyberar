@@ -1,8 +1,10 @@
 <script setup>
 import { ref } from "vue";
 import { command, COMM_TYPES, CONTROL_MODES } from "../stores/mission";
+import ManualControlModal from "../manual/ManualControlModal.vue";
 defineProps({ state: Object, busy: Boolean });
 const redTeam = ref(false);
+const manualControl = ref(false);
 const faultDrone = ref(0);
 const faultLevel = ref(60);
 const jammerActive = (state, id) =>
@@ -11,6 +13,10 @@ const gpsSpoofed = (state) => (state.drone_faults?.["0"] || 0) > 0;
 async function restoreAll() {
   await command("restore");
   await command("clear_drone_faults");
+}
+async function selectControlMode(modeId) {
+  await command("set_control_mode", modeId);
+  if (modeId === "MANUAL_REMOTE") manualControl.value = true;
 }
 </script>
 <template>
@@ -76,8 +82,8 @@ async function restoreAll() {
           v-for="mode in CONTROL_MODES"
           :key="mode.id"
           :class="{ selected: state.control_mode === mode.id }"
-          :disabled="busy || state.control_mode === mode.id"
-          @click="command('set_control_mode', mode.id)"
+          :disabled="busy"
+          @click="selectControlMode(mode.id)"
         >
           {{ mode.label }}<small>{{ mode.detail }}</small>
         </button>
@@ -163,4 +169,5 @@ async function restoreAll() {
       </div>
     </section>
   </div>
+  <ManualControlModal v-if="manualControl" :state="state" @close="manualControl = false" />
 </template>
