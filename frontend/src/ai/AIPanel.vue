@@ -1,5 +1,8 @@
 <script setup>
+import { ref } from "vue";
+import AIConversationModal from "./AIConversationModal.vue";
 defineProps({ state: Object });
+const showConversation = ref(false);
 </script>
 <template>
   <section class="side-panel ai-panel">
@@ -21,6 +24,9 @@ defineProps({ state: Object });
         </p>
       </div>
     </div>
+    <button class="ai-conversation-button" @click="showConversation = true">
+      💬 VER CONSULTA A LA IA
+    </button>
     <div class="ai-footer" v-if="state?.scenario_meta?.has_ugv">
       <span>ANÁLISIS CAN ENVIADOS</span><b>{{ state.ugv?.analysis_runs || 0 }}</b><span>PRIORIDAD</span><b>P1</b>
     </div>
@@ -28,4 +34,5 @@ defineProps({ state: Object });
       <span>ANÁLISIS</span><b>DEBRIEFING</b><span>PRIORIDAD</span><b>P2</b>
     </div>
   </section>
+  <AIConversationModal v-if="showConversation" :state="state" @close="showConversation = false" />
 </template>

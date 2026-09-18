@@ -1498,6 +1498,12 @@ aside {
   color: #8da69f;
   margin-top: 48px;
 }
+.login-logo {
+  position: relative;
+  width: clamp(120px, 12vw, 190px);
+  height: auto;
+  flex-shrink: 0;
+}
 .login-card {
   width: 390px;
   max-width: 100%;
@@ -2277,4 +2283,105 @@ aside {
     bottom: 90px;
     right: 12px;
   }
+}
+
+/* Botón que abre el ida y vuelta simple con DF AI. */
+.ai-conversation-button {
+  width: 100%;
+  min-height: 38px;
+  margin-top: 14px;
+  font-size: 9px;
+  font-weight: 600;
+  border-color: var(--orange);
+  color: var(--orange);
+}
+.ai-conversation {
+  width: min(560px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 80px #000c;
+  padding: 22px;
+}
+.ai-conversation .panel-heading h3 {
+  color: var(--orange);
+}
+.ai-conversation-empty {
+  font-size: 10px;
+  line-height: 1.9;
+  color: #8a9ba2;
+}
+.ai-bubble {
+  padding: 14px 16px;
+  margin-top: 14px;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  line-height: 1.8;
+  color: #c3cdd0;
+}
+.ai-bubble-out {
+  background: #10181c;
+  border-left: 3px solid #46606b;
+}
+.ai-bubble-in {
+  background: #14100c;
+  border-left: 3px solid var(--orange);
+}
+.ai-bubble-in.waiting {
+  border-left-color: #647680;
+}
+.ai-bubble-from {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: #7b9099;
+  margin-bottom: 8px;
+}
+.ai-bubble-question {
+  margin-top: 8px;
+  font-style: italic;
+  color: #9db3ba;
+}
+.ai-conversation-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #8a9ba2;
+}
+.loader.small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+  flex-shrink: 0;
+}
+.ai-bubble-verdict {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 9px;
+  flex-wrap: wrap;
+}
+.severity-tag {
+  padding: 3px 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border: 1px solid;
+}
+.severity-tag.low {
+  color: var(--green);
+  border-color: var(--green);
+}
+.severity-tag.medium {
+  color: #d9a380;
+  border-color: #d9a380;
+}
+.severity-tag.high {
+  color: #ff6b5e;
+  border-color: #ff6b5e;
+}
+.ai-confidence {
+  color: #7b9099;
+  margin-left: auto;
 }

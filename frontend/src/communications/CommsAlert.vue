@@ -23,14 +23,16 @@ function startAlert(channel) {
   command("set_channel", alternatives[0].id);
 }
 
+// Solo dispara con una degradación *nueva*. No se auto-cierra cuando el
+// canal activo deja de estar degradado — eso pasa en el próximo tick,
+// apenas conmuta, y cerraría el modal antes de que se llegue a leer. Cierra
+// únicamente el botón CERRAR.
 watch(
   () => props.state?.channels?.find((c) => c.id === props.state.active_channel)?.status,
   (current, previous) => {
     if (current === "DEGRADED" && previous && previous !== "DEGRADED") {
       const active = props.state.channels.find((c) => c.id === props.state.active_channel);
       if (active) startAlert(active);
-    } else if (current !== "DEGRADED") {
-      dismiss();
     }
   },
 );

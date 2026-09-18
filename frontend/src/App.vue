@@ -20,6 +20,7 @@ import EventLog from "./events/EventLog.vue";
 import DemoControls from "./demo/DemoControls.vue";
 import ScenarioControls from "./scenario/ScenarioControls.vue";
 import UGVPanel from "./ugv/UGVPanel.vue";
+import logoUrl from "./assets/logo.png";
 const activeAsset = ref("UAV");
 const activeDrone = ref(0);
 const showDebrief = ref(false);
@@ -100,6 +101,7 @@ onMounted(bootstrap);
           ><span>04 CONTINUAR</span>
         </div>
       </div>
+      <img :src="logoUrl" alt="La misión continúa" class="login-logo" />
       <form class="login-card" @submit.prevent="submitLogin">
         <span class="eyebrow">ACCESO RESTRINGIDO / DEMOSTRACIÓN</span>
         <h2>Centro de operaciones</h2>
