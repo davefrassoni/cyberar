@@ -36,6 +36,20 @@ class UGVTests(TestCase):
         reverifications = [e for e in state['events'] if 'Reverificación' in e['message']]
         self.assertGreaterEqual(len(reverifications), 2)
 
+    def test_reverification_times_out_even_if_the_broker_claimed_it(self):
+        """A reanalysis the broker picked up (SUBMITTING/WAITING) but never
+        resolved must still time out locally — not just one still PENDING."""
+        state = self.engine.initial()
+        for _ in range(105):
+            state = self.engine.advance(state)
+        self.assertTrue(state['ugv']['untrusted'])
+        self.assertEqual(state['ugv']['analysis']['status'], 'PENDING')
+        state['ugv']['analysis']['status'] = 'WAITING'
+        for _ in range(9):
+            state = self.engine.advance(state)
+        self.assertEqual(state['ugv']['analysis']['status'], 'COMPLETED')
+        self.assertEqual(state['ugv']['analysis']['source'], 'LOCAL')
+
     def test_manual_restore_does_not_change_uav(self):
         state = self.engine.advance(self.engine.initial(), 80)
         interference = state['interference']

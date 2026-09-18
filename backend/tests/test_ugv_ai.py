@@ -84,15 +84,30 @@ class AITests(TestCase):
 
     @patch('vehicles.ai.close_old_connections')
     @patch('vehicles.ai.DFAIClient.submit', side_effect=TimeoutError)
-    def test_timeouts_keep_same_key_and_block_new_jobs(self, submit, close):
+    def test_timeouts_keep_same_key_then_abandon_the_slot(self, submit, close):
+        """Repeated delivery failure must not block the shared flight forever —
+        the one time this actually happened in production, every mission's CAN
+        analysis stayed stuck until someone fixed it by hand over SSH."""
         process(); key = AIFlight.objects.get().key
         for _ in range(5):
             AIFlight.objects.update(next_attempt=timezone.now())
             process()
+        # 3 real delivery attempts, then the slot is abandoned (not left PENDING
+        # forever) as soon as reserve() next sees the exhausted attempt count.
         self.assertEqual(submit.call_count, 3)
         self.assertEqual(AIFlight.objects.get().key, key)
-        self.assertEqual(AIFlight.objects.get().status, 'PENDING')
+        self.assertEqual(AIFlight.objects.get().status, 'DONE')
         self.assertTrue(all(call.args[0].key == key for call in submit.call_args_list))
+        # Freed for the next mission that actually needs it.
+        submit.side_effect = None
+        submit.return_value = str(uuid.uuid4())
+        control(self.live.state, 'can_restore')
+        self.live.state['ugv']['detector']['score'] = 90
+        self.live.state['ugv']['analysis'] = {'status': 'PENDING', 'source': 'LOCAL', 'requested_at': 0, 'result': None}
+        self.live.save()
+        process()
+        self.assertEqual(submit.call_count, 4)
+        self.assertEqual(AIFlight.objects.get().status, 'WAITING')
 
     def test_schema_rejects_non_json_actions_and_nan(self):
         for result in [dict(RESULT, recommended_action='RUN_SHELL'), dict(RESULT, confidence=float('nan')), dict(RESULT, assessment=12)]:

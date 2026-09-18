@@ -141,7 +141,13 @@ def update(state, t):
             ugv["analysis_runs"] += 1
             ugv["reanalysis_requested_at"] = t
             emit(state, "SYSTEM", "Reverificación periódica de integridad CAN · análisis pendiente")
-        elif status == "PENDING" and ugv["reanalysis_requested_at"] is not None and t - ugv["reanalysis_requested_at"] >= 8:
+        # Times out on PENDING/SUBMITTING/WAITING alike — not just PENDING. If the
+        # broker claims this reanalysis (flips it to SUBMITTING/WAITING) and then
+        # stalls (a delivery failure, a slow callback, the shared flight going to
+        # someone else's mission), this must still resolve on its own; otherwise
+        # the panel is left showing "queued" forever with nothing actually queued.
+        elif status in ("PENDING", "SUBMITTING", "WAITING") and ugv["reanalysis_requested_at"] is not None \
+                and t - ugv["reanalysis_requested_at"] >= 8:
             apply_recommendation(state, {"severity": "LOW", "assessment": "Reverificación local: CAN SPEED continúa aislado, GPS e IMU siguen consistentes entre sí.",
                 "suspected_source": "CAN_SPEED", "confidence": .9, "recommended_action": "CONTINUE_MONITORING"}, "LOCAL")
             ugv["next_reanalysis_at"] = t + REANALYSIS_INTERVAL

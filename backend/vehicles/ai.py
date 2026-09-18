@@ -41,7 +41,16 @@ class DFAIClient:
 def reserve():
     flight = AIFlight.objects.select_for_update().filter(pk=1).first()
     if flight and flight.status != "DONE":
-        return flight if flight.status == "PENDING" and flight.attempts < 3 and flight.next_attempt <= timezone.now() else None
+        if flight.status == "PENDING" and flight.attempts < 3 and flight.next_attempt <= timezone.now():
+            return flight
+        if flight.status == "PENDING" and flight.attempts >= 3:
+            # Delivery failed 3 times in a row: this mission's own local fallback
+            # already covers it (the 8s timeout doesn't wait on AIFlight state).
+            # Abandoning the slot here matters for every *other* mission — this
+            # is the single shared flight, and leaving it permanently non-DONE
+            # would otherwise block CAN analysis app-wide forever.
+            AIFlight.objects.filter(pk=1, key=flight.key, status="PENDING").update(status="DONE")
+        return None
     for live in MissionState.objects.filter(running=True, mission__ai_disabled=False).order_by("mission_id"):
         ugv = live.state.get("ugv", {})
         analysis = ugv.get("analysis", {})
