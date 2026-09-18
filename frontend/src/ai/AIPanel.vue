@@ -11,9 +11,13 @@ defineProps({ state: Object });
       <span class="ai-symbol">⌘</span>
       <div>
         <strong>MOTOR LOCAL ACTIVO</strong>
-        <p>
+        <p v-if="state?.scenario_meta?.has_ugv">
           Comunicaciones UAV: escenario determinístico.
           El análisis DF AI de anomalías CAN está en la pestaña {{ state?.ugv?.asset || "UGV-01" }}.
+        </p>
+        <p v-else>
+          Comunicaciones UAV: escenario determinístico. El debriefing posterior a la misión
+          compara los sensores de la flota y aplica el mismo análisis DF AI.
         </p>
       </div>
     </div>

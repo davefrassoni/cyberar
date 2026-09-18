@@ -36,6 +36,13 @@ const faultLevel = ref(60);
     >
       ↗ DEMO AUTOMÁTICA</button
     ><button
+      class="add-drone"
+      :disabled="busy || (state.drones?.length || 1) >= 3 || state.phase === 'MISSION_COMPLETE'"
+      :title="state.phase === 'MISSION_COMPLETE' ? 'Reiniciá la demo para agregar más UAV' : (state.drones?.length || 1) >= 3 ? 'La flota ya alcanzó el máximo de 3 UAV' : 'Despega otro UAV desde la base'"
+      @click="command('add_drone')"
+    >
+      ＋ AGREGAR UAV <small>{{ state.drones?.length || 1 }}/3</small></button
+    ><button
       :class="['red-button', { selected: redTeam }]"
       @click="redTeam = !redTeam"
       :aria-expanded="redTeam"
@@ -43,7 +50,7 @@ const faultLevel = ref(60);
       △ RED TEAM
     </button>
   </div>
-  <div class="can-controls" v-if="state.ugv">
+  <div class="can-controls" v-if="state.ugv && state.scenario_meta?.has_ugv">
     <span class="control-label">{{ state.ugv.asset }} / CAN SIMULADO</span>
     <button :disabled="busy" @click="command('can_start')">INICIAR ANOMALÍA CAN</button>
     <button :disabled="busy" @click="command('can_increase')">AUMENTAR ANOMALÍA</button>

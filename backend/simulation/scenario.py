@@ -84,12 +84,12 @@ def ugv_route_for(key):
     return copy.deepcopy(SCENARIOS[key]["ugv"]["route"])
 
 
-def scenario_meta(key, fleet_size):
+def scenario_meta(key):
     if key not in SCENARIOS:
         raise ValueError("Escenario desconocido")
     entry = SCENARIOS[key]
     return {"key": key, "label": entry["label"], "subtitle": entry["subtitle"],
-            "vehicle_type": entry["vehicle_type"], "fleet_size": fleet_size,
+            "vehicle_type": entry["vehicle_type"], "has_ugv": key != "atlantic",
             "ugv": {"asset": entry["ugv"]["asset"], "label": entry["ugv"]["label"]}}
 
 

@@ -5,6 +5,7 @@ const props = defineProps({ state: Object });
 const visible = ref(false);
 const countdown = ref(3);
 const recommended = ref(null);
+const degraded = ref(null);
 let timer = null;
 function clearTimer() {
   if (timer) {
@@ -25,6 +26,7 @@ function startAlert(channel) {
     .filter((c) => c.id !== channel.id && c.available)
     .sort((a, b) => b.signal_quality - a.signal_quality);
   if (!alternatives.length) return;
+  degraded.value = channel;
   recommended.value = alternatives[0];
   visible.value = true;
   countdown.value = 3;
@@ -48,15 +50,25 @@ watch(
 onBeforeUnmount(clearTimer);
 </script>
 <template>
-  <div v-if="visible && recommended" class="comms-alert" role="alertdialog" aria-live="assertive">
-    <span class="comms-alert-icon">△</span>
-    <div class="comms-alert-body">
-      <strong>DEGRADACIÓN DE ENLACE DETECTADA</strong>
-      <p>Se recomienda conmutar a <b>{{ recommended.id }}</b>. Aplicando en <b>{{ countdown }}s</b>…</p>
-    </div>
-    <div class="comms-alert-actions">
-      <button class="primary" @click="applyNow">CONMUTAR AHORA</button>
-      <button @click="dismiss">CANCELAR</button>
+  <div v-if="visible && recommended && degraded" class="comms-modal-overlay" role="alertdialog" aria-modal="true" aria-label="Alerta de degradación de comunicaciones">
+    <div class="comms-modal">
+      <span class="comms-modal-icon">△</span>
+      <h3>DEGRADACIÓN DE ENLACE DETECTADA</h3>
+      <div class="comms-modal-row">
+        <span>PROBLEMA DETECTADO</span>
+        <b>{{ degraded.id }} degradado · calidad {{ Math.round(degraded.signal_quality) }}%</b>
+      </div>
+      <div class="comms-modal-row">
+        <span>SOLUCIÓN A APLICAR</span>
+        <b>Conmutar a {{ recommended.id }} <small>({{ Math.round(recommended.signal_quality) }}% calidad)</small></b>
+      </div>
+      <div class="comms-modal-countdown">
+        Aplicando automáticamente en <span class="countdown-number">{{ countdown }}</span>
+      </div>
+      <div class="comms-modal-actions">
+        <button class="primary" @click="applyNow">CONMUTAR AHORA</button>
+        <button @click="dismiss">CANCELAR</button>
+      </div>
     </div>
   </div>
 </template>

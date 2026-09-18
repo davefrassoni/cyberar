@@ -2,34 +2,27 @@
 import { command } from "../stores/mission";
 defineProps({ state: Object, busy: Boolean });
 const SCENARIOS = [
-  { key: "atlantic", label: "ATLÁNTICO" },
-  { key: "vaca-muerta", label: "CUENCA NEUQUINA" },
-  { key: "triple-frontera", label: "TRIPLE FRONTERA" },
+  { key: "atlantic", label: "ATLÁNTICO", subtitle: "Recon. marítimo" },
+  { key: "vaca-muerta", label: "CUENCA NEUQUINA", subtitle: "Infraestructura petrolera" },
+  { key: "triple-frontera", label: "TRIPLE FRONTERA", subtitle: "Patrulla fronteriza" },
 ];
 </script>
 <template>
-  <div class="demo-controls scenario-controls">
-    <span class="control-label">ESCENARIO</span>
-    <button
-      v-for="s in SCENARIOS"
-      :key="s.key"
-      :class="{ selected: state.scenario_meta?.key === s.key }"
-      :disabled="busy"
-      @click="command('select_scenario', s.key)"
-    >
-      {{ s.label }}
-    </button>
-    <div class="speed-controls">
-      <span class="control-label">FLOTA</span>
+  <section class="scenario-switcher">
+    <span class="control-label">🗺 TEATRO DE OPERACIONES · ELEGIR ESCENARIO</span>
+    <div class="scenario-buttons">
       <button
-        v-for="n in [1, 2, 3]"
-        :key="n"
-        :class="{ selected: state.scenario_meta?.fleet_size === n }"
+        v-for="s in SCENARIOS"
+        :key="s.key"
+        type="button"
+        :class="['scenario-button', { selected: state.scenario_meta?.key === s.key }]"
+        :aria-pressed="state.scenario_meta?.key === s.key"
         :disabled="busy"
-        @click="command('set_fleet_size', n)"
+        @click="command('select_scenario', s.key)"
       >
-        {{ n }}×
+        <strong>{{ s.label }}</strong>
+        <small>{{ s.subtitle }}</small>
       </button>
     </div>
-  </div>
+  </section>
 </template>

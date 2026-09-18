@@ -9,10 +9,6 @@ class DemoScenario(models.Model):
     duration = models.PositiveIntegerField(default=150)
     configuration = models.JSONField(default=dict)
     scenario_key = models.CharField(max_length=32, default="atlantic")
-    fleet_size = models.PositiveSmallIntegerField(default=1)
-
-    class Meta:
-        constraints = [models.CheckConstraint(check=models.Q(fleet_size__gte=1) & models.Q(fleet_size__lte=3), name="fleet_size_range")]
 
 
 class Mission(models.Model):

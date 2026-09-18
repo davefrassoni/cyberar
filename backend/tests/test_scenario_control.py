@@ -27,15 +27,13 @@ class ScenarioControlTests(TestCase):
     def test_select_scenario_rejects_unknown_key(self):
         self.assertEqual(self.post({"action": "select_scenario", "value": "moon-base"}).status_code, 400)
 
-    def test_set_fleet_size_validates_range(self):
-        for value in [0, 4, "3", True, None]:
-            with self.subTest(value=value):
-                self.assertEqual(self.post({"action": "set_fleet_size", "value": value}).status_code, 400)
-        response = self.post({"action": "set_fleet_size", "value": 3})
+    def test_add_drone_grows_fleet_and_caps_at_three(self):
+        response = self.post({"action": "add_drone"})
         self.assertEqual(response.status_code, 200)
-        state = response.json()
-        self.assertEqual(len(state["drones"]), 3)
-        self.assertEqual(state["scenario_meta"]["fleet_size"], 3)
+        self.assertEqual(len(response.json()["drones"]), 2)
+        self.post({"action": "add_drone"})
+        response = self.post({"action": "add_drone"})
+        self.assertEqual(response.status_code, 400)
 
     def test_set_checkpoint_persists_and_reverts_on_scenario_switch(self):
         response = self.post({"action": "set_checkpoint", "value": {"index": 1, "x": 400, "y": 300}})
@@ -74,7 +72,7 @@ class ScenarioControlTests(TestCase):
         self.assertEqual(self.post({"action": "set_channel", "value": "RF-PRIMARY"}).status_code, 400)
 
     def test_set_drone_fault_biases_altitude_and_validates(self):
-        self.post({"action": "set_fleet_size", "value": 2})
+        self.post({"action": "add_drone"})
         state = self.post({"action": "start"}).json()
         mission_id = state["mission_id"]
         for _ in range(10): tick(mission_id)

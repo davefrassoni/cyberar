@@ -39,6 +39,12 @@ watch(
     if (length && activeDrone.value >= length) activeDrone.value = 0;
   },
 );
+watch(
+  () => store.state?.scenario_meta?.has_ugv,
+  (hasUgv) => {
+    if (hasUgv === false && activeAsset.value === "UGV") activeAsset.value = "UAV";
+  },
+);
 onMounted(bootstrap);
 </script>
 <template>
@@ -168,7 +174,7 @@ onMounted(bootstrap);
       <nav class="asset-tabs" aria-label="Activos de la misión">
         <span class="eyebrow">ACTIVOS</span>
         <button :class="{ selected: activeAsset === 'UAV' }" :aria-pressed="activeAsset === 'UAV'" @click="activeAsset = 'UAV'">⌖ FLOTA UAV <small>● {{ store.state.drones.length }} EN VUELO</small></button>
-        <button :class="{ selected: activeAsset === 'UGV' }" :aria-pressed="activeAsset === 'UGV'" @click="activeAsset = 'UGV'">▰ {{ store.state.ugv?.asset || 'UGV-01' }} <small>● {{ store.state.ugv?.status || 'OPERATIVO' }}</small></button>
+        <button v-if="store.state.scenario_meta?.has_ugv" :class="{ selected: activeAsset === 'UGV' }" :aria-pressed="activeAsset === 'UGV'" @click="activeAsset = 'UGV'">▰ {{ store.state.ugv?.asset || 'UGV-01' }} <small>● {{ store.state.ugv?.status || 'OPERATIVO' }}</small></button>
       </nav>
       <nav v-if="activeAsset === 'UAV' && store.state.drones.length > 1" class="asset-tabs drone-tabs" aria-label="Drones de la flota">
         <span class="eyebrow">DRON ACTIVO</span>
@@ -176,15 +182,15 @@ onMounted(bootstrap);
       </nav>
       <div :class="['workspace', { 'ugv-workspace': activeAsset === 'UGV' }]">
         <TacticalMap v-if="activeAsset === 'UAV'" :state="store.state" @select-ugv="activeAsset = 'UGV'" @select-drone="(i) => (activeDrone = i)" />
-        <UGVView v-else-if="store.state.ugv" :state="store.state" />
+        <UGVView v-else-if="store.state.ugv && store.state.scenario_meta?.has_ugv" :state="store.state" />
         <aside v-if="activeAsset === 'UAV'">
           <TelemetryPanel :telemetry="store.state.drones[activeDrone] || store.state.drones[0]" /><CommsPanel
             :state="store.state"
           /><AIPanel :state="store.state" />
         </aside>
-        <aside v-else-if="store.state.ugv"><UGVPanel :ugv="store.state.ugv" /></aside>
+        <aside v-else-if="store.state.ugv && store.state.scenario_meta?.has_ugv"><UGVPanel :ugv="store.state.ugv" /></aside>
       </div>
-      <section v-if="store.state.ugv?.untrusted" class="resilience-summary">
+      <section v-if="store.state.ugv?.untrusted && store.state.scenario_meta?.has_ugv" class="resilience-summary">
         <div><span>FLOTA UAV / CAPA EXTERNA</span><b>COMUNICACIONES {{ store.state.interference ? 'EN OBSERVACIÓN' : 'OPERATIVAS ✓' }}</b></div>
         <div><span>{{ store.state.ugv.asset }} / CAPA INTERNA</span><b>ANOMALÍA AISLADA · MODO DEGRADADO ✓</b></div>
         <p>RESILIENCIA MULTICAPA · CAN aislado ✓ · Correlación de sensores ✓ · {{ store.state.ugv.analysis.source === 'DF AI' ? 'Análisis DF AI ✓' : 'Respuesta local ✓ / DF AI no confirmado' }}</p>

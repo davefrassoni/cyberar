@@ -41,27 +41,21 @@ def serialize(live):
     scenario = live.mission.scenario
     meta = SCENARIOS.get(scenario.scenario_key, SCENARIOS["atlantic"])
     state.setdefault("ugv", ugv.initial(settings.CYBERAR_CAN_THRESHOLD, meta["ugv"]["route"], meta["ugv"]["asset"], meta["ugv"]["label"]))
-    state["scenario_meta"] = build_scenario_meta(scenario.scenario_key, scenario.fleet_size)
+    state["scenario_meta"] = build_scenario_meta(scenario.scenario_key)
     return {"mission_id": str(live.mission_id), "revision": live.revision, "running": live.running, "speed": live.speed, **state}
 
 
-def _reset_with(live, scenario_key=None, fleet_size=None, running=False):
+def _reset_with(live, scenario_key=None, running=False):
     scenario = live.mission.scenario
-    updated = []
     if scenario_key is not None:
         scenario.scenario_key = scenario_key
         scenario.configuration = {k: v for k, v in scenario.configuration.items() if k != "checkpoints"}
-        updated += ["scenario_key", "configuration"]
-    if fleet_size is not None:
-        scenario.fleet_size = fleet_size
-        updated.append("fleet_size")
-    if updated:
-        scenario.save(update_fields=updated)
+        scenario.save(update_fields=["scenario_key", "configuration"])
     meta = SCENARIOS.get(scenario.scenario_key, SCENARIOS["atlantic"])
     route = route_for(scenario.scenario_key, scenario.configuration.get("checkpoints"))
     live.state = engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD, route=route,
-                                 fleet_size=scenario.fleet_size, ugv_route=meta["ugv"]["route"],
-                                 ugv_asset=meta["ugv"]["asset"], ugv_label=meta["ugv"]["label"])
+                                 ugv_route=meta["ugv"]["route"], ugv_asset=meta["ugv"]["asset"],
+                                 ugv_label=meta["ugv"]["label"])
     live.generation += 1
     live.running = running
     live.speed = 1
@@ -80,10 +74,8 @@ def control(mission_id, owner, body):
     elif action == "select_scenario":
         if body.get("value") not in SCENARIOS: raise ValueError("Escenario inválido")
         _reset_with(live, scenario_key=body["value"])
-    elif action == "set_fleet_size":
-        value = body.get("value")
-        if type(value) is not int or not 1 <= value <= 3: raise ValueError("Tamaño de flota inválido")
-        _reset_with(live, fleet_size=value)
+    elif action == "add_drone":
+        live.state = engine.add_drone(live.state)
     elif action in {"can_start", "can_increase", "can_restore"}:
         ugv.control(live.state, action)
     elif action == "start":
@@ -131,7 +123,7 @@ def control(mission_id, owner, body):
         value = body.get("value")
         if not isinstance(value, dict) or set(value) != {"drone", "level"}: raise ValueError("Falla inválida")
         drone, level = value["drone"], value["level"]
-        if type(drone) is not int or not 0 <= drone < live.state["fleet_size"]: raise ValueError("Dron inválido")
+        if type(drone) is not int or not 0 <= drone < len(live.state["drones"]): raise ValueError("Dron inválido")
         if type(level) not in (int, float) or not math.isfinite(level) or not 0 <= level <= 100: raise ValueError("Nivel inválido")
         live.state.setdefault("drone_faults", {})[str(drone)] = level
         live.state = engine.retelemeter(live.state)

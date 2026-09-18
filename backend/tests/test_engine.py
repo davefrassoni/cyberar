@@ -54,23 +54,34 @@ class EngineTests(TestCase):
             with self.subTest(value=value), self.assertRaises(ValueError):
                 self.engine.set_interference(self.engine.initial(), value)
 
-    def test_invalid_fleet_size_rejected(self):
-        for value in [0, 4, "3", True, None]:
-            with self.subTest(value=value), self.assertRaises(ValueError):
-                self.engine.initial(fleet_size=value)
-
-    def test_fleet_drones_are_staggered_and_trailing_drone_gates_completion(self):
-        state = self.engine.initial(fleet_size=3)
+    def test_add_drone_rejects_when_fleet_full_or_mission_complete(self):
+        state = self.engine.initial()
+        state = self.engine.add_drone(state)
+        state = self.engine.add_drone(state)
         self.assertEqual(len(state["drones"]), 3)
-        state = self.engine.advance(state, 9)
-        lead, second, third = state["drones"]
-        self.assertGreater(lead["altitude"], second["altitude"])
-        self.assertGreater(second["altitude"], third["altitude"])
-        # Lead drone has finished its route by elapsed=150, but the trailing drone's offset isn't done yet.
-        state = self.engine.advance(state, 141)
+        with self.assertRaises(ValueError):
+            self.engine.add_drone(state)
+        complete = self.engine.advance(self.engine.initial(), 150)
+        with self.assertRaises(ValueError):
+            self.engine.add_drone(complete)
+
+    def test_added_drone_launches_from_base_at_the_current_time(self):
+        state = self.engine.advance(self.engine.initial(), 20)
+        state = self.engine.add_drone(state)
+        self.assertEqual(len(state["drones"]), 2)
+        lead, second = state["drones"]
+        self.assertGreater(lead["altitude"], 0)
+        self.assertEqual(second["altitude"], 0)
+        self.assertEqual(second["x"], state["route"][0]["x"])
+        self.assertEqual(second["y"], state["route"][0]["y"])
+
+    def test_trailing_drone_gates_mission_completion(self):
+        state = self.engine.advance(self.engine.initial(), 140)
+        state = self.engine.add_drone(state)
+        state = self.engine.advance(state, 10)
         self.assertEqual(state["elapsed"], 150)
         self.assertNotEqual(state["phase"], Phase.MISSION_COMPLETE)
-        state = self.engine.advance(state, 16)
+        state = self.engine.advance(state, 140)
         self.assertEqual(state["phase"], Phase.MISSION_COMPLETE)
 
     def test_retelemeter_does_not_advance_clock(self):

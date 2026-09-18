@@ -7,7 +7,7 @@ from events.log import emit
 from .scenario import DemoScenario, ROUTE, SCENARIOS
 from vehicles import ugv
 
-OFFSET_SECONDS = 8
+MAX_FLEET = 3
 
 
 class Phase(StrEnum):
@@ -30,21 +30,31 @@ LABELS = {Phase.TAKEOFF: "Despegue confirmado", Phase.TRANSIT: "Tránsito hacia 
 
 
 class SimulationEngine:
-    def initial(self, duration=150, can_threshold=80, route=None, fleet_size=1,
+    def initial(self, duration=150, can_threshold=80, route=None,
                 ugv_route=None, ugv_asset=None, ugv_label=None):
-        if type(fleet_size) is not int or not 1 <= fleet_size <= 3:
-            raise ValueError("El tamaño de flota debe ser 1, 2 o 3")
         atlantic = SCENARIOS["atlantic"]
         state = {"elapsed": 0, "duration": duration, "phase": Phase.PREPARING, "automatic": True,
                  "interference": 0, "active_channel": "RF-PRIMARY", "channels": metrics(),
                  "checkpoint_index": 0, "route": copy.deepcopy(route) if route else copy.deepcopy(ROUTE),
-                 "fleet_size": fleet_size, "drone_faults": {}, "events": [], "event_sequence": 0,
+                 "drones_launch": [0], "drone_faults": {}, "events": [], "event_sequence": 0,
                  "ugv": ugv.initial(can_threshold,
                                      copy.deepcopy(ugv_route) if ugv_route else None,
                                      ugv_asset or atlantic["ugv"]["asset"],
                                      ugv_label or atlantic["ugv"]["label"])}
         self._fleet_telemetry(state)
         emit(state, "SYSTEM", "Simulador listo · escenario determinístico v1")
+        return state
+
+    def add_drone(self, original):
+        state = copy.deepcopy(original)
+        launches = state.setdefault("drones_launch", [0])
+        if len(launches) >= MAX_FLEET:
+            raise ValueError("La flota ya alcanzó el máximo de 3 UAV")
+        if state["phase"] == Phase.MISSION_COMPLETE:
+            raise ValueError("La misión ya finalizó · reiniciá la demo para agregar más UAV")
+        launches.append(state["elapsed"])
+        self._fleet_telemetry(state)
+        emit(state, "MISSION", f"UAV-{len(launches):02d} despegó desde base")
         return state
 
     def transition(self, state, target):
@@ -61,8 +71,9 @@ class SimulationEngine:
             if state["phase"] == Phase.MISSION_COMPLETE: break
             state["elapsed"] += 1
             route = state["route"]
+            launches = state.get("drones_launch") or [0]
             t_lead = DemoScenario(state["duration"]).time(state["elapsed"])
-            trailing_elapsed = max(0, state["elapsed"] - (state["fleet_size"] - 1) * OFFSET_SECONDS)
+            trailing_elapsed = max(0, state["elapsed"] - max(launches))
             t_trail = DemoScenario(state["duration"]).time(trailing_elapsed)
             for threshold, phase, t in [(1, Phase.TAKEOFF, t_lead), (8, Phase.TRANSIT, t_lead),
                                          (65, Phase.RECON, t_lead), (100, Phase.RETURN, t_lead),
@@ -110,11 +121,12 @@ class SimulationEngine:
                 "checkpoint_index": raw_index, "onboard_storage": 0, "timestamp": elapsed}
 
     def _fleet_telemetry(self, state):
-        route, duration, fleet_size = state["route"], state["duration"], state["fleet_size"]
+        route, duration = state["route"], state["duration"]
+        launches = state.get("drones_launch") or [0]
         faults = state.get("drone_faults") or {}
         drones = []
-        for i in range(fleet_size):
-            elapsed_i = max(0, state["elapsed"] - i * OFFSET_SECONDS)
+        for i, launch in enumerate(launches):
+            elapsed_i = max(0, state["elapsed"] - launch)
             drone = self._drone_telemetry(route, duration, elapsed_i, f"UAV-{i + 1:02d}")
             fault = faults.get(str(i), 0)
             if fault:

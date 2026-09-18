@@ -8,7 +8,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("mission", "0003_demoscenario_fleet_size_demoscenario_scenario_key_and_more"),
+        ("mission", "0003_demoscenario_scenario_key"),
     ]
 
     operations = [

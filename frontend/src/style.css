@@ -566,6 +566,14 @@ p {
   cursor: grabbing;
   stroke: var(--green);
 }
+.checkpoint-hit-area {
+  fill: transparent;
+  pointer-events: all;
+  cursor: grab;
+}
+.checkpoint.dragging .checkpoint-hit-area {
+  cursor: grabbing;
+}
 .map-edit-banner {
   position: absolute;
   top: 12px;
@@ -586,6 +594,14 @@ p {
   color: #7fa892;
   margin-top: 2px;
   letter-spacing: 0.02em;
+}
+.map-edit-banner-locked {
+  background: #17181bed;
+  border-color: #3a3f45;
+  color: #94a0a8;
+}
+.map-edit-banner-locked small {
+  color: #6c7681;
 }
 .well-pads {
   fill: none;
@@ -993,61 +1009,136 @@ aside {
 .auto-demo {
   margin-left: auto;
 }
+.add-drone {
+  border-color: #3d5c4c;
+  color: var(--green);
+}
+.add-drone small {
+  margin-left: 5px;
+  color: #7fa892;
+}
 .demo-controls .red-button {
   border-color: #634a3b;
   color: #d2a186;
   margin-left: 6px;
 }
-.scenario-controls {
-  position: static;
-  z-index: auto;
+.scenario-switcher {
+  padding: 16px 0;
   border-bottom: 1px solid var(--border);
+}
+.scenario-switcher > .control-label {
+  display: block;
+  margin-bottom: 10px;
+}
+.scenario-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.scenario-button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 10px 16px;
+  min-height: 52px;
+  background: #0e1518;
+  border: 1px solid var(--border);
+}
+.scenario-button strong {
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: #dfe6e8;
+}
+.scenario-button small {
+  font-size: 8px;
+  color: #71828c;
+}
+.scenario-button.selected {
+  border-color: var(--orange);
+  background: #1c1410;
+}
+.scenario-button.selected strong {
+  color: var(--orange);
 }
 .asset-tabs.drone-tabs {
   border-bottom: 1px solid var(--border);
 }
-.comms-alert {
+.comms-modal-overlay {
   position: fixed;
-  top: 90px;
-  right: 24px;
-  z-index: 50;
+  inset: 0;
+  z-index: 70;
+  background: #05070880;
   display: flex;
-  gap: 12px;
-  align-items: flex-start;
-  max-width: 320px;
-  background: #261b13f2;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.comms-modal {
+  width: min(420px, 100%);
+  background: #1a120eF7;
   border: 1px solid #8d5c3c;
-  color: #e9a470;
-  padding: 14px 16px;
-  box-shadow: 0 20px 60px #0009;
+  box-shadow: 0 30px 80px #000c;
+  padding: 26px 28px;
+  text-align: center;
 }
-.comms-alert-icon {
-  font-size: 18px;
-  line-height: 1;
-}
-.comms-alert-body strong {
+.comms-modal-icon {
   display: block;
-  font-size: 10px;
-  letter-spacing: 0.03em;
-  margin-bottom: 6px;
-  color: #f0b285;
+  font-size: 28px;
+  color: #e9a470;
+  margin-bottom: 8px;
 }
-.comms-alert-body p {
+.comms-modal h3 {
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: #f0b285;
+  margin-bottom: 18px;
+}
+.comms-modal-row {
+  text-align: left;
+  border-top: 1px solid #4a3325;
+  padding: 10px 0;
+}
+.comms-modal-row span {
+  display: block;
+  font-size: 8px;
+  letter-spacing: 0.06em;
+  color: #b98b62;
+  margin-bottom: 4px;
+}
+.comms-modal-row b {
+  font-size: 11px;
+  color: #f0d5c0;
+  font-weight: 500;
+}
+.comms-modal-row b small {
   font-size: 9px;
-  line-height: 1.7;
+  color: #c99a72;
+  font-weight: 400;
+}
+.comms-modal-countdown {
+  border-top: 1px solid #4a3325;
+  margin-top: 4px;
+  padding-top: 16px;
+  font-size: 10px;
   color: #d9a380;
 }
-.comms-alert-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-left: auto;
+.comms-modal-countdown .countdown-number {
+  display: inline-block;
+  min-width: 22px;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--orange);
 }
-.comms-alert-actions button {
-  font-size: 8px;
-  padding: 7px 10px;
-  min-height: 0;
-  white-space: nowrap;
+.comms-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+.comms-modal-actions button {
+  flex: 1;
+  font-size: 9px;
+  padding: 11px;
 }
 .red-team {
   position: relative;

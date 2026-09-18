@@ -22,8 +22,8 @@ class DebriefTests(TestCase):
         csrf = self.client.get("/cyberar/api/session/").json()["csrf"]
         return self.client.post("/cyberar/api/control/", json.dumps(body), content_type="application/json", HTTP_X_CSRFTOKEN=csrf)
 
-    def complete_mission_with_fleet(self, fleet_size=3):
-        self.post({"action": "set_fleet_size", "value": fleet_size})
+    def complete_mission_with_fleet(self, drones=3):
+        for _ in range(drones - 1): self.post({"action": "add_drone"})
         self.post({"action": "speed", "value": 4})
         state = self.post({"action": "start"}).json()
         mission_id = state["mission_id"]
@@ -31,12 +31,13 @@ class DebriefTests(TestCase):
         return mission_id
 
     def test_request_debrief_rejected_before_mission_complete(self):
-        self.post({"action": "set_fleet_size", "value": 2})
+        self.post({"action": "add_drone"})
         self.post({"action": "start"})
         self.assertEqual(self.post({"action": "request_debrief"}).status_code, 400)
 
     def test_local_insight_names_the_faulty_drone(self):
-        self.post({"action": "set_fleet_size", "value": 3})
+        self.post({"action": "add_drone"})
+        self.post({"action": "add_drone"})
         state = self.post({"action": "start"}).json()
         mission_id = state["mission_id"]
         for _ in range(5): tick(mission_id)
@@ -87,7 +88,7 @@ class DebriefTests(TestCase):
 
     def test_debrief_endpoint_tolerates_legacy_snapshot_rows(self):
         from mission.models import TelemetrySnapshot, Mission
-        mission_id = self.complete_mission_with_fleet(fleet_size=1)
+        mission_id = self.complete_mission_with_fleet(drones=1)
         mission = Mission.objects.get(pk=mission_id)
         TelemetrySnapshot.objects.create(mission=mission, elapsed=9999, data={"legacy": "single-vehicle shape"})
         response = self.client.get("/cyberar/api/debrief/")
