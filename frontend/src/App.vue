@@ -98,9 +98,9 @@ onMounted(bootstrap);
       <div class="login-grid" />
       <div class="login-orbit orbit-one" />
       <div class="login-orbit orbit-two" />
-      <img :src="logoUrl" alt="La misión continúa" class="login-logo" />
       <div class="login-row">
         <div class="login-copy">
+          <img :src="logoUrl" alt="La misión continúa" class="login-logo" />
           <span class="eyebrow orange-text">CYBER.AR 2026 / ATLÁNTICO SUR</span>
           <h1>La misión<br />continúa<span>.</span></h1>
           <p>Un enlace puede fallar.<br />Un sistema resiliente se adapta.</p>

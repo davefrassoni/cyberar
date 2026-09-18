@@ -1506,9 +1506,11 @@ aside {
   margin-top: 48px;
 }
 .login-logo {
+  display: block;
   position: relative;
   width: clamp(80px, 7vw, 110px);
   height: auto;
+  margin: 0 auto 28px;
 }
 .login-card {
   width: 390px;
