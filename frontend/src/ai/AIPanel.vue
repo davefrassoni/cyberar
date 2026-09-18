@@ -1,3 +1,6 @@
+<script setup>
+defineProps({ state: Object });
+</script>
 <template>
   <section class="side-panel ai-panel">
     <div class="panel-heading">
@@ -10,7 +13,7 @@
         <strong>MOTOR LOCAL ACTIVO</strong>
         <p>
           Comunicaciones UAV: escenario determinístico.
-          El análisis DF AI de anomalías CAN está en la pestaña UGV-01.
+          El análisis DF AI de anomalías CAN está en la pestaña {{ state?.ugv?.asset || "UGV-01" }}.
         </p>
       </div>
     </div>

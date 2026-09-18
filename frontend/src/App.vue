@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, ref } from "vue";
+import { onMounted, ref, watch } from "vue";
 import {
   store,
   bootstrap,
@@ -7,22 +7,38 @@ import {
   logout,
   phaseLabel,
   clock,
+  requestDebrief,
 } from "./stores/mission";
+import DebriefView from "./debrief/DebriefView.vue";
 import TacticalMap from "./map/TacticalMap.vue";
 import TelemetryPanel from "./telemetry/TelemetryPanel.vue";
 import CommsPanel from "./communications/CommsPanel.vue";
+import CommsAlert from "./communications/CommsAlert.vue";
 import AIPanel from "./ai/AIPanel.vue";
 import EventLog from "./events/EventLog.vue";
 import DemoControls from "./demo/DemoControls.vue";
+import ScenarioControls from "./scenario/ScenarioControls.vue";
 import UGVPanel from "./ugv/UGVPanel.vue";
 import UGVView from "./ugv/UGVView.vue";
 const activeAsset = ref("UAV");
+const activeDrone = ref(0);
+const showDebrief = ref(false);
 const username = ref(""),
   password = ref("");
 async function submitLogin() {
   await login(username.value, password.value);
   password.value = "";
 }
+async function openDebrief() {
+  await requestDebrief();
+  showDebrief.value = true;
+}
+watch(
+  () => store.state?.drones?.length,
+  (length) => {
+    if (length && activeDrone.value >= length) activeDrone.value = 0;
+  },
+);
 onMounted(bootstrap);
 </script>
 <template>
@@ -109,10 +125,11 @@ onMounted(bootstrap);
       </div>
     </main>
     <main v-else-if="store.state" class="dashboard">
+      <CommsAlert :state="store.state" />
       <section class="mission-bar">
         <div class="mission-title">
-          <span class="eyebrow">MISIÓN 001 / RECONOCIMIENTO MARÍTIMO</span>
-          <h1>OPERACIÓN ATLÁNTICO</h1>
+          <span class="eyebrow">MISIÓN 001 / {{ store.state.scenario_meta?.subtitle?.toUpperCase() }}</span>
+          <h1>{{ store.state.scenario_meta?.label?.toUpperCase() }}</h1>
         </div>
         <div class="mission-meta">
           <div>
@@ -131,37 +148,45 @@ onMounted(bootstrap);
           <div>
             <label>CHECKPOINT</label
             ><b
-              >{{ store.state.telemetry.current_checkpoint }}
+              >{{ store.state.drones[0].current_checkpoint }}
               <span class="muted"
-                >→ {{ store.state.telemetry.next_checkpoint }}</span
+                >→ {{ store.state.drones[0].next_checkpoint }}</span
               ></b
             >
           </div>
         </div>
-        <span class="mission-number">ATL / 01</span>
+        <button v-if="store.state.phase === 'MISSION_COMPLETE'" class="debrief-button" :disabled="store.busy" @click="openDebrief">
+          ▤ VER DEBRIEFING
+        </button>
+        <span class="mission-number">{{ (store.state.scenario_meta?.key || "").slice(0, 3).toUpperCase() }} / 01</span>
       </section>
       <div v-if="store.stale" class="stale-banner" role="status">
         DATOS SIN ACTUALIZAR · Esperando conexión con el servidor
       </div>
+      <ScenarioControls :state="store.state" :busy="store.busy" />
       <DemoControls :state="store.state" :busy="store.busy" />
       <nav class="asset-tabs" aria-label="Activos de la misión">
         <span class="eyebrow">ACTIVOS</span>
-        <button :class="{ selected: activeAsset === 'UAV' }" :aria-pressed="activeAsset === 'UAV'" @click="activeAsset = 'UAV'">⌖ UAV-01 <small>● OPERATIVO</small></button>
-        <button :class="{ selected: activeAsset === 'UGV' }" :aria-pressed="activeAsset === 'UGV'" @click="activeAsset = 'UGV'">▰ UGV-01 <small>● {{ store.state.ugv?.status || 'OPERATIVO' }}</small></button>
+        <button :class="{ selected: activeAsset === 'UAV' }" :aria-pressed="activeAsset === 'UAV'" @click="activeAsset = 'UAV'">⌖ FLOTA UAV <small>● {{ store.state.drones.length }} EN VUELO</small></button>
+        <button :class="{ selected: activeAsset === 'UGV' }" :aria-pressed="activeAsset === 'UGV'" @click="activeAsset = 'UGV'">▰ {{ store.state.ugv?.asset || 'UGV-01' }} <small>● {{ store.state.ugv?.status || 'OPERATIVO' }}</small></button>
+      </nav>
+      <nav v-if="activeAsset === 'UAV' && store.state.drones.length > 1" class="asset-tabs drone-tabs" aria-label="Drones de la flota">
+        <span class="eyebrow">DRON ACTIVO</span>
+        <button v-for="(drone, i) in store.state.drones" :key="drone.id" :class="{ selected: activeDrone === i }" :aria-pressed="activeDrone === i" @click="activeDrone = i">{{ drone.id }}</button>
       </nav>
       <div :class="['workspace', { 'ugv-workspace': activeAsset === 'UGV' }]">
-        <TacticalMap v-if="activeAsset === 'UAV'" :state="store.state" @select-ugv="activeAsset = 'UGV'" />
+        <TacticalMap v-if="activeAsset === 'UAV'" :state="store.state" @select-ugv="activeAsset = 'UGV'" @select-drone="(i) => (activeDrone = i)" />
         <UGVView v-else-if="store.state.ugv" :state="store.state" />
         <aside v-if="activeAsset === 'UAV'">
-          <TelemetryPanel :telemetry="store.state.telemetry" /><CommsPanel
+          <TelemetryPanel :telemetry="store.state.drones[activeDrone] || store.state.drones[0]" /><CommsPanel
             :state="store.state"
-          /><AIPanel />
+          /><AIPanel :state="store.state" />
         </aside>
         <aside v-else-if="store.state.ugv"><UGVPanel :ugv="store.state.ugv" /></aside>
       </div>
       <section v-if="store.state.ugv?.untrusted" class="resilience-summary">
-        <div><span>UAV-01 / CAPA EXTERNA</span><b>COMUNICACIONES {{ store.state.interference ? 'EN OBSERVACIÓN' : 'OPERATIVAS ✓' }}</b></div>
-        <div><span>UGV-01 / CAPA INTERNA</span><b>ANOMALÍA AISLADA · MODO DEGRADADO ✓</b></div>
+        <div><span>FLOTA UAV / CAPA EXTERNA</span><b>COMUNICACIONES {{ store.state.interference ? 'EN OBSERVACIÓN' : 'OPERATIVAS ✓' }}</b></div>
+        <div><span>{{ store.state.ugv.asset }} / CAPA INTERNA</span><b>ANOMALÍA AISLADA · MODO DEGRADADO ✓</b></div>
         <p>RESILIENCIA MULTICAPA · CAN aislado ✓ · Correlación de sensores ✓ · {{ store.state.ugv.analysis.source === 'DF AI' ? 'Análisis DF AI ✓' : 'Respuesta local ✓ / DF AI no confirmado' }}</p>
       </section>
       <EventLog
@@ -178,6 +203,7 @@ onMounted(bootstrap);
           MISIÓN</span
         ><span>CYBER.AR // 2026</span>
       </footer>
+      <DebriefView v-if="showDebrief" :state="store.state" :debrief="store.debrief" @close="showDebrief = false" />
     </main>
     <main v-else class="loading">
       No se pudo cargar la misión.

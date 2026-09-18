@@ -11,9 +11,9 @@ class EngineTests(TestCase):
         second = self.engine.advance(self.engine.initial(), 150)
         self.assertEqual(first, second)
         self.assertEqual(first["phase"], Phase.MISSION_COMPLETE)
-        self.assertEqual(first["telemetry"]["altitude"], 0)
-        self.assertEqual(first["telemetry"]["x"], ROUTE[0]["x"])
-        self.assertEqual(first["telemetry"]["y"], ROUTE[0]["y"])
+        self.assertEqual(first["drones"][0]["altitude"], 0)
+        self.assertEqual(first["drones"][0]["x"], ROUTE[0]["x"])
+        self.assertEqual(first["drones"][0]["y"], ROUTE[0]["y"])
         self.assertEqual(first["checkpoint_index"], 7)
         self.assertEqual(first["interference"], 0)
 
@@ -53,3 +53,45 @@ class EngineTests(TestCase):
         for value in [-1, 101, True, None, "20", float("nan"), float("inf")]:
             with self.subTest(value=value), self.assertRaises(ValueError):
                 self.engine.set_interference(self.engine.initial(), value)
+
+    def test_invalid_fleet_size_rejected(self):
+        for value in [0, 4, "3", True, None]:
+            with self.subTest(value=value), self.assertRaises(ValueError):
+                self.engine.initial(fleet_size=value)
+
+    def test_fleet_drones_are_staggered_and_trailing_drone_gates_completion(self):
+        state = self.engine.initial(fleet_size=3)
+        self.assertEqual(len(state["drones"]), 3)
+        state = self.engine.advance(state, 9)
+        lead, second, third = state["drones"]
+        self.assertGreater(lead["altitude"], second["altitude"])
+        self.assertGreater(second["altitude"], third["altitude"])
+        # Lead drone has finished its route by elapsed=150, but the trailing drone's offset isn't done yet.
+        state = self.engine.advance(state, 141)
+        self.assertEqual(state["elapsed"], 150)
+        self.assertNotEqual(state["phase"], Phase.MISSION_COMPLETE)
+        state = self.engine.advance(state, 16)
+        self.assertEqual(state["phase"], Phase.MISSION_COMPLETE)
+
+    def test_retelemeter_does_not_advance_clock(self):
+        state = self.engine.advance(self.engine.initial(), 40)
+        state["drone_faults"] = {"0": 50}
+        refreshed = self.engine.retelemeter(state)
+        self.assertEqual(refreshed["elapsed"], state["elapsed"])
+        self.assertEqual(refreshed["phase"], state["phase"])
+        self.assertLess(refreshed["drones"][0]["altitude"], state["drones"][0]["altitude"])
+
+    def test_all_scenario_presets_have_valid_routes(self):
+        from simulation.scenario import SCENARIOS
+        for key, entry in SCENARIOS.items():
+            with self.subTest(scenario=key):
+                route = entry["route"]
+                self.assertGreaterEqual(len(route), 3)
+                at_values = [cp["at"] for cp in route]
+                self.assertEqual(at_values, sorted(at_values))
+                self.assertEqual(at_values[0], 0)
+                for cp in route:
+                    self.assertTrue(0 <= cp["x"] <= 1100)
+                    self.assertTrue(0 <= cp["y"] <= 650)
+                ugv_route = entry["ugv"]["route"]
+                self.assertGreaterEqual(len(ugv_route), 3)

@@ -8,6 +8,11 @@ class DemoScenario(models.Model):
     version = models.PositiveIntegerField(default=1)
     duration = models.PositiveIntegerField(default=150)
     configuration = models.JSONField(default=dict)
+    scenario_key = models.CharField(max_length=32, default="atlantic")
+    fleet_size = models.PositiveSmallIntegerField(default=1)
+
+    class Meta:
+        constraints = [models.CheckConstraint(check=models.Q(fleet_size__gte=1) & models.Q(fleet_size__lte=3), name="fleet_size_range")]
 
 
 class Mission(models.Model):
@@ -68,3 +73,19 @@ class AIFlight(models.Model):
     snapshot = models.JSONField(default=dict)
     attempts = models.PositiveIntegerField(default=0)
     next_attempt = models.DateTimeField(default=timezone.now)
+
+
+class DebriefFlight(models.Model):
+    """Segundo slot de vuelo único: análisis de debriefing posterior a la misión, separado de AIFlight."""
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1)
+    mission = models.ForeignKey(Mission, on_delete=models.CASCADE)
+    generation = models.PositiveIntegerField()
+    key = models.CharField(max_length=160)
+    job_id = models.CharField(max_length=64, blank=True)
+    status = models.CharField(max_length=16, default="PENDING")
+    snapshot = models.JSONField(default=dict)
+    result = models.JSONField(null=True, blank=True)
+    source = models.CharField(max_length=8, default="LOCAL")
+    attempts = models.PositiveIntegerField(default=0)
+    next_attempt = models.DateTimeField(default=timezone.now)
+    requested_at = models.DateTimeField(null=True, blank=True)

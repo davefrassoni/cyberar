@@ -6,7 +6,7 @@ const analysisLabel = computed(() => ({ IDLE: 'ESPERANDO EVIDENCIA', PENDING: 'A
 </script>
 <template>
   <section class="side-panel ugv-instruments">
-    <div class="panel-heading"><h3>UGV-01 / RED INTERNA</h3><span :class="['asset-status', { warning: ugv.detector.score >= 40 }]">{{ ugv.status }}</span></div>
+    <div class="panel-heading"><h3>{{ ugv.asset }} / RED INTERNA</h3><span :class="['asset-status', { warning: ugv.detector.score >= 40 }]">{{ ugv.status }}</span></div>
     <p class="detection-stage" aria-live="polite">{{ ugv.stage }}</p>
     <div class="score-heading"><label>ANOMALY SCORE</label><strong>{{ ugv.detector.score }}<small>%</small></strong></div>
     <meter class="can-meter" min="0" max="100" :value="ugv.detector.score" :aria-label="`Anomaly score ${ugv.detector.score}%`" />

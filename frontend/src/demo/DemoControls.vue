@@ -3,6 +3,8 @@ import { ref } from "vue";
 import { command } from "../stores/mission";
 defineProps({ state: Object, busy: Boolean });
 const redTeam = ref(false);
+const faultDrone = ref(0);
+const faultLevel = ref(60);
 </script>
 <template>
   <div class="demo-controls">
@@ -42,7 +44,7 @@ const redTeam = ref(false);
     </button>
   </div>
   <div class="can-controls" v-if="state.ugv">
-    <span class="control-label">UGV-01 / CAN SIMULADO</span>
+    <span class="control-label">{{ state.ugv.asset }} / CAN SIMULADO</span>
     <button :disabled="busy" @click="command('can_start')">INICIAR ANOMALÍA CAN</button>
     <button :disabled="busy" @click="command('can_increase')">AUMENTAR ANOMALÍA</button>
     <button :disabled="busy" @click="command('can_restore')">RESTAURAR CAN</button>
@@ -83,6 +85,31 @@ const redTeam = ref(false);
       ><button :disabled="busy" @click="command('restore')">
         RESTAURAR ENLACES
       </button>
+    </div>
+    <div v-if="state.drones?.length > 1" class="fault-injection">
+      <p>Sesga únicamente la altitud reportada por el dron elegido (misma trayectoria real) para simular un sensor fallado.</p>
+      <div class="fault-controls">
+        <select v-model.number="faultDrone" :disabled="busy">
+          <option v-for="(drone, i) in state.drones" :key="drone.id" :value="i">{{ drone.id }}</option>
+        </select>
+        <label class="slider-label"
+          >NIVEL DE FALLA <b>{{ faultLevel }}%</b
+          ><input
+            aria-label="Nivel de falla de sensor"
+            type="range"
+            min="0"
+            max="100"
+            step="1"
+            v-model.number="faultLevel"
+            :disabled="busy"
+        /></label>
+        <button :disabled="busy" @click="command('set_drone_fault', { drone: faultDrone, level: faultLevel })">
+          APLICAR FALLA
+        </button>
+        <button :disabled="busy" @click="command('clear_drone_faults')">
+          RESTAURAR SENSORES
+        </button>
+      </div>
     </div>
   </section>
 </template>

@@ -1,5 +1,6 @@
 <script setup>
 import { computed } from "vue";
+import { command, store } from "../stores/mission";
 const props = defineProps({ state: Object });
 const active = computed(() =>
   props.state.channels.find((c) => c.id === props.state.active_channel),
@@ -55,13 +56,21 @@ const active = computed(() =>
       </div>
     </div>
     <div class="channel-list">
-      <div v-for="channel in state.channels" :key="channel.id">
+      <button
+        v-for="channel in state.channels"
+        :key="channel.id"
+        type="button"
+        class="channel-row"
+        :disabled="store.busy || channel.id === active.id || !channel.available"
+        :aria-pressed="channel.id === active.id"
+        @click="command('set_channel', channel.id)"
+      >
         <span
           ><i :class="['dot', { dim: channel.id !== active.id }]" />{{
             channel.id
           }}</span
-        ><b>{{ channel.id === active.id ? "ACTIVO" : "RESERVA" }}</b>
-      </div>
+        ><b>{{ channel.id === active.id ? "ACTIVO" : channel.available ? "CONMUTAR" : "NO DISPONIBLE" }}</b>
+      </button>
     </div>
   </section>
 </template>

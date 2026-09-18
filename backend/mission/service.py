@@ -1,9 +1,11 @@
+import math
 from django.conf import settings
 from django.db import transaction
 from django.contrib.sessions.models import Session
 from django.utils import timezone
 from events.log import emit
 from simulation.engine import SimulationEngine, Phase
+from simulation.scenario import SCENARIOS, route_for, scenario_meta as build_scenario_meta
 from vehicles import ugv
 from .models import Mission, MissionState, DemoScenario, MissionEvent, TelemetrySnapshot, CommunicationSnapshot
 
@@ -16,7 +18,7 @@ def persist_events(live):
 
 
 def snapshot(live):
-    TelemetrySnapshot.objects.create(mission=live.mission, elapsed=live.state["elapsed"], data=live.state["telemetry"])
+    TelemetrySnapshot.objects.create(mission=live.mission, elapsed=live.state["elapsed"], data=live.state["drones"])
     CommunicationSnapshot.objects.create(mission=live.mission, elapsed=live.state["elapsed"], data=live.state["channels"])
 
 
@@ -36,8 +38,37 @@ def ensure_mission(session_key):
 
 def serialize(live):
     state = dict(live.state)
-    state.setdefault("ugv", ugv.initial(settings.CYBERAR_CAN_THRESHOLD))
+    scenario = live.mission.scenario
+    meta = SCENARIOS.get(scenario.scenario_key, SCENARIOS["atlantic"])
+    state.setdefault("ugv", ugv.initial(settings.CYBERAR_CAN_THRESHOLD, meta["ugv"]["route"], meta["ugv"]["asset"], meta["ugv"]["label"]))
+    state["scenario_meta"] = build_scenario_meta(scenario.scenario_key, scenario.fleet_size)
     return {"mission_id": str(live.mission_id), "revision": live.revision, "running": live.running, "speed": live.speed, **state}
+
+
+def _reset_with(live, scenario_key=None, fleet_size=None, running=False):
+    scenario = live.mission.scenario
+    updated = []
+    if scenario_key is not None:
+        scenario.scenario_key = scenario_key
+        scenario.configuration = {k: v for k, v in scenario.configuration.items() if k != "checkpoints"}
+        updated += ["scenario_key", "configuration"]
+    if fleet_size is not None:
+        scenario.fleet_size = fleet_size
+        updated.append("fleet_size")
+    if updated:
+        scenario.save(update_fields=updated)
+    meta = SCENARIOS.get(scenario.scenario_key, SCENARIOS["atlantic"])
+    route = route_for(scenario.scenario_key, scenario.configuration.get("checkpoints"))
+    live.state = engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD, route=route,
+                                 fleet_size=scenario.fleet_size, ugv_route=meta["ugv"]["route"],
+                                 ugv_asset=meta["ugv"]["asset"], ugv_label=meta["ugv"]["label"])
+    live.generation += 1
+    live.running = running
+    live.speed = 1
+    MissionEvent.objects.filter(mission=live.mission).delete()
+    TelemetrySnapshot.objects.filter(mission=live.mission).delete()
+    CommunicationSnapshot.objects.filter(mission=live.mission).delete()
+    snapshot(live)
 
 
 @transaction.atomic
@@ -45,14 +76,14 @@ def control(mission_id, owner, body):
     live = MissionState.objects.select_for_update().select_related("mission__scenario").get(mission_id=mission_id, mission__owner_session=owner)
     action = body.get("action")
     if action in {"reset", "automatic_demo"}:
-        live.state = engine.initial(live.mission.scenario.duration, settings.CYBERAR_CAN_THRESHOLD)
-        live.generation += 1
-        live.running = action == "automatic_demo"
-        live.speed = 1
-        MissionEvent.objects.filter(mission=live.mission).delete()
-        TelemetrySnapshot.objects.filter(mission=live.mission).delete()
-        CommunicationSnapshot.objects.filter(mission=live.mission).delete()
-        snapshot(live)
+        _reset_with(live, running=(action == "automatic_demo"))
+    elif action == "select_scenario":
+        if body.get("value") not in SCENARIOS: raise ValueError("Escenario inválido")
+        _reset_with(live, scenario_key=body["value"])
+    elif action == "set_fleet_size":
+        value = body.get("value")
+        if type(value) is not int or not 1 <= value <= 3: raise ValueError("Tamaño de flota inválido")
+        _reset_with(live, fleet_size=value)
     elif action in {"can_start", "can_increase", "can_restore"}:
         ugv.control(live.state, action)
     elif action == "start":
@@ -69,6 +100,50 @@ def control(mission_id, owner, body):
     elif action in {"interference", "restore"}:
         live.state["automatic"] = False
         engine.set_interference(live.state, 0 if action == "restore" else body.get("value"))
+    elif action == "set_checkpoint":
+        if live.running or live.state["phase"] != Phase.PREPARING:
+            raise ValueError("Los checkpoints solo pueden editarse antes de iniciar la misión")
+        value = body.get("value")
+        if not isinstance(value, dict) or set(value) != {"index", "x", "y"}: raise ValueError("Checkpoint inválido")
+        route = live.state["route"]
+        index, x, y = value["index"], value["x"], value["y"]
+        if type(index) is not int or not 1 <= index <= len(route) - 2: raise ValueError("Índice de checkpoint inválido")
+        if type(x) not in (int, float) or type(y) not in (int, float) or not math.isfinite(x) or not math.isfinite(y):
+            raise ValueError("Coordenadas inválidas")
+        if not 40 <= x <= 1060 or not 30 <= y <= 620: raise ValueError("Checkpoint fuera del área operativa")
+        route[index] = {**route[index], "x": round(float(x), 1), "y": round(float(y), 1)}
+        scenario = live.mission.scenario
+        checkpoints = list(scenario.configuration.get("checkpoints") or route_for(scenario.scenario_key))
+        checkpoints[index] = dict(route[index])
+        scenario.configuration = {**scenario.configuration, "checkpoints": checkpoints}
+        scenario.save(update_fields=["configuration"])
+        live.state = engine.retelemeter(live.state)
+        emit(live.state, "MISSION", f"Checkpoint {route[index]['id']} reubicado")
+    elif action == "set_channel":
+        channel_id = body.get("value")
+        channel = next((c for c in live.state["channels"] if c["id"] == channel_id), None)
+        if channel is None: raise ValueError("Canal inválido")
+        if not channel["available"]: raise ValueError("Canal no disponible")
+        if live.state["active_channel"] != channel_id:
+            live.state["active_channel"] = channel_id
+            emit(live.state, "COMMUNICATION", f"Canal activo conmutado a {channel_id}")
+    elif action == "set_drone_fault":
+        value = body.get("value")
+        if not isinstance(value, dict) or set(value) != {"drone", "level"}: raise ValueError("Falla inválida")
+        drone, level = value["drone"], value["level"]
+        if type(drone) is not int or not 0 <= drone < live.state["fleet_size"]: raise ValueError("Dron inválido")
+        if type(level) not in (int, float) or not math.isfinite(level) or not 0 <= level <= 100: raise ValueError("Nivel inválido")
+        live.state.setdefault("drone_faults", {})[str(drone)] = level
+        live.state = engine.retelemeter(live.state)
+        emit(live.state, "WARNING", f"UAV-{drone + 1:02d} · sensor de altitud degradado (simulado)")
+    elif action == "clear_drone_faults":
+        live.state["drone_faults"] = {}
+        live.state = engine.retelemeter(live.state)
+        emit(live.state, "SYSTEM", "Fallas de sensores simuladas restauradas")
+    elif action == "request_debrief":
+        if live.state["phase"] != Phase.MISSION_COMPLETE: raise ValueError("La misión debe completarse antes del debriefing")
+        from mission import debrief
+        debrief.request(live)
     else: raise ValueError("Acción no permitida")
     live.revision += 1
     live.save()

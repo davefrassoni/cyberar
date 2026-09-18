@@ -7,6 +7,8 @@ from simulation.scenario import DemoScenario
 ROUTE = [dict(id=name, x=x, y=y) for name, x, y in [
     ("BASE-UGV", 666, 252), ("T-01", 680, 238), ("T-02", 706, 242),
     ("T-03", 711, 264), ("OBSERVATION", 689, 294), ("RETURN", 666, 252)]]
+DEFAULT_ASSET = "UGV-01"
+DEFAULT_LABEL = "Vehículo terrestre costero"
 ACTIONS = {"CONTINUE_MONITORING", "MARK_SIGNAL_UNTRUSTED", "ISOLATE_SIGNAL", "REDUCE_SPEED", "SAFE_STOP", "RETURN_TO_BASE"}
 
 
@@ -24,10 +26,13 @@ class SafetyValidator:
         return action
 
 
-def initial(threshold=80):
+def initial(threshold=80, route=None, asset=None, label=None):
+    route = copy.deepcopy(route) if route else copy.deepcopy(ROUTE)
+    asset = asset or DEFAULT_ASSET
+    label = label or DEFAULT_LABEL
     messages = CANSimulationEngine().sample(0, 0, 0)
-    return {"asset": "UGV-01", "route": copy.deepcopy(ROUTE), "position": copy.deepcopy(ROUTE[0]),
-            "progress": 0, "checkpoint": "BASE-UGV", "speed": 0, "status": "OPERATIVO",
+    return {"asset": asset, "label": label, "route": route, "position": copy.deepcopy(route[0]),
+            "progress": 0, "checkpoint": route[0]["id"], "speed": 0, "status": "OPERATIVO",
             "stage": "PATRULLA NORMAL", "level": 0, "manual": False, "incident": 0,
             "history": [], "messages": messages, "threshold": threshold, "untrusted": False,
             "safe_stop": False, "returning": False, "reduced": False,
@@ -41,8 +46,9 @@ def control(state, action):
     ugv["manual"] = True
     if action == "can_restore":
         threshold, position, progress = ugv["threshold"], ugv["position"], ugv["progress"]
+        route, asset, label = ugv["route"], ugv["asset"], ugv["label"]
         incident = ugv["incident"] + 1
-        ugv.update(initial(threshold))
+        ugv.update(initial(threshold, route, asset, label))
         ugv.update(manual=True, incident=incident, position=position, progress=progress)
         emit(state, "CAN", "CAN restaurado · historial y evidencia reiniciados")
     else:
@@ -68,18 +74,20 @@ def apply_recommendation(state, recommendation, source):
 
 def update(state, t):
     ugv = state.setdefault("ugv", initial())
+    route = ugv["route"]
+    last = len(route) - 1
     if not ugv["manual"]:
         ugv["level"] = DemoScenario(state["duration"]).can_manipulation(state["elapsed"])
-    speed = 0 if t == 0 or ugv["safe_stop"] or ugv["progress"] >= 5 else (9 if ugv["reduced"] else 33)
+    speed = 0 if t == 0 or ugv["safe_stop"] or ugv["progress"] >= last else (9 if ugv["reduced"] else 33)
     ugv["speed"] = speed
     dt = 150 / state["duration"]
-    ugv["progress"] = min(5, ugv["progress"] + dt / 29 * speed / 33)
-    index = min(4, int(ugv["progress"]))
-    a, b = ROUTE[index:index+2]
+    ugv["progress"] = min(last, ugv["progress"] + dt / 29 * speed / 33)
+    index = min(last - 1, int(ugv["progress"]))
+    a, b = route[index:index+2]
     f = ugv["progress"] - index
     if ugv["returning"]:
         import math
-        b = ROUTE[-1]
+        b = route[-1]
         position = ugv["position"]
         distance = math.hypot(b["x"]-position["x"], b["y"]-position["y"])
         fraction = min(1, dt * speed / 33 / max(distance, .001))
@@ -102,7 +110,7 @@ def update(state, t):
     if ugv["safe_stop"]: ugv["status"] = "DETENIDO EN ZONA SEGURA"
     if stage not in ugv["milestones"]:
         ugv["milestones"].append(stage)
-        emit(state, "WARNING" if stage == "ANOMALÍA CAN" else "CAN", f"UGV-01 · {stage}")
+        emit(state, "WARNING" if stage == "ANOMALÍA CAN" else "CAN", f"{ugv['asset']} · {stage}")
     ugv["stage"] = stage
     if score >= ugv["threshold"] and ugv["alert_at"] is None:
         ugv["alert_at"] = t

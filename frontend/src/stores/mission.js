@@ -9,10 +9,12 @@ export const store = reactive({
   busy: false,
   lastFrame: 0,
   stale: false,
+  debrief: null,
 });
 let socket,
   retry,
   watchdog,
+  debriefPoll,
   attempts = 0,
   generation = 0;
 function apply(data) {
@@ -110,14 +112,38 @@ export async function command(action, value) {
     store.busy = false;
   }
 }
+export async function loadDebrief() {
+  store.debrief = await request("debrief");
+  return store.debrief;
+}
+export async function requestDebrief() {
+  await command("request_debrief");
+  await loadDebrief();
+  clearInterval(debriefPoll);
+  let attempts = 0;
+  debriefPoll = setInterval(async () => {
+    attempts += 1;
+    if (attempts > 20 || store.debrief?.status === "DONE") {
+      clearInterval(debriefPoll);
+      return;
+    }
+    try {
+      await loadDebrief();
+    } catch {
+      clearInterval(debriefPoll);
+    }
+  }, 3000);
+}
 export async function logout() {
   try {
     await request("logout", {});
     store.authenticated = false;
     store.state = null;
+    store.debrief = null;
     generation++;
     clearTimeout(retry);
     clearInterval(watchdog);
+    clearInterval(debriefPoll);
     socket?.close();
     await request("session");
   } catch (error) {

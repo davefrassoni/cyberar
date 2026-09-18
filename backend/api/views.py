@@ -6,6 +6,7 @@ from django.views.decorators.http import require_GET, require_POST
 from authentication.security import authenticated, rate_allowed
 from mission.service import ensure_mission, serialize, control
 from mission.models import MissionState
+from mission import debrief
 
 
 @require_GET
@@ -30,6 +31,15 @@ def asset(request, name):
 def state(request):
     mission = ensure_mission(request.session.session_key)
     response = JsonResponse(serialize(mission.live))
+    response["Cache-Control"] = "no-store"
+    return response
+
+
+@require_GET
+@authenticated
+def debrief_state(request):
+    mission = ensure_mission(request.session.session_key)
+    response = JsonResponse(debrief.serialize(mission))
     response["Cache-Control"] = "no-store"
     return response
 

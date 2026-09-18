@@ -2,12 +2,18 @@ import fcntl
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from vehicles.ai import process
+from vehicles.ai import process as process_ai_flight
 from contextlib import ExitStack
 from django.core.management.base import BaseCommand, CommandError
 from django.db import close_old_connections, connection
+from mission import debrief
 from mission.models import MissionState
 from mission.service import tick
+
+
+def run_ai_cycle():
+    process_ai_flight()
+    debrief.process()
 
 
 class Command(BaseCommand):
@@ -45,5 +51,5 @@ class Command(BaseCommand):
                 if pending is None or pending.done():
                     if pending is not None:
                         pending.result()
-                    pending = executor.submit(process)
+                    pending = executor.submit(run_ai_cycle)
                 time.sleep(max(0, 1 - (time.monotonic() - started)))
