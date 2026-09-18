@@ -43,7 +43,7 @@ class DemoLoginTests(TestCase):
 class AIDisabledMissionSkippedTests(TestCase):
     def _mission(self, ai_disabled):
         scenario = DemoScenario.objects.create()
-        mission = Mission.objects.create(owner_session=f"session-{uuid.uuid4()}", scenario=scenario, ai_disabled=ai_disabled)
+        mission = Mission.objects.create(owner_session=uuid.uuid4().hex, scenario=scenario, ai_disabled=ai_disabled)
         return MissionState.objects.create(
             mission=mission, state=SimulationEngine().advance(SimulationEngine().initial(), 92), running=True,
         )
