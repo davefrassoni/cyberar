@@ -88,6 +88,23 @@ class APITests(TestCase):
         self.assertTrue(cookie["httponly"])
         self.assertEqual(cookie["samesite"], "Strict")
 
+    def test_legacy_pre_fleet_state_self_heals_on_next_load(self):
+        self.login()
+        original = self.client.get("/cyberar/api/state/").json()
+        live = MissionState.objects.get(mission_id=original["mission_id"])
+        legacy_state = dict(live.state)
+        del legacy_state["drones"]
+        del legacy_state["drones_launch"]
+        legacy_state["telemetry"] = {"altitude": 0, "x": 195, "y": 230}
+        live.state = legacy_state
+        live.save()
+        response = self.client.get("/cyberar/api/state/")
+        self.assertEqual(response.status_code, 200)
+        healed = response.json()
+        self.assertIsInstance(healed["drones"], list)
+        self.assertGreaterEqual(len(healed["drones"]), 1)
+        self.assertIsInstance(healed["route"], list)
+
     def test_can_controls_are_session_scoped_and_independent_from_rf(self):
         self.login()
         self.post("control", {"action": "interference", "value": 55})

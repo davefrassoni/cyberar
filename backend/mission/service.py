@@ -22,6 +22,11 @@ def snapshot(live):
     CommunicationSnapshot.objects.create(mission=live.mission, elapsed=live.state["elapsed"], data=live.state["channels"])
 
 
+def _needs_repair(state):
+    """True for state blobs persisted before the fleet/route refactor (no 'drones' list yet)."""
+    return not isinstance(state.get("route"), list) or not isinstance(state.get("drones"), list) or not state["drones"] or "drones_launch" not in state
+
+
 @transaction.atomic
 def ensure_mission(session_key):
     # A session row serializes simultaneous first requests from multiple tabs.
@@ -33,6 +38,12 @@ def ensure_mission(session_key):
         live = MissionState.objects.create(mission=mission, state=engine.initial(scenario.duration, settings.CYBERAR_CAN_THRESHOLD))
         persist_events(live)
         snapshot(live)
+    else:
+        live = MissionState.objects.select_for_update().select_related("mission__scenario").get(mission=mission)
+        if _needs_repair(live.state):
+            _reset_with(live)
+            live.save()
+            persist_events(live)
     return mission
 
 
