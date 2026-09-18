@@ -3,6 +3,7 @@ import { computed } from 'vue';
 const props = defineProps({ ugv: Object });
 const sample = computed(() => props.ugv.detector.sample);
 const analysisLabel = computed(() => ({ IDLE: 'ESPERANDO EVIDENCIA', PENDING: 'ANÁLISIS PENDIENTE', SUBMITTING: 'JOB P1 EN CURSO', REJECTED: 'RESPUESTA DESCARTADA', COMPLETED: 'ANÁLISIS COMPLETADO' })[props.ugv.analysis.status]);
+const plot = (key) => props.ugv.history.map((s, i) => `${30 + (i * 740) / 39},${160 - s[key] * 3.5}`).join(' ');
 </script>
 <template>
   <section class="side-panel ugv-instruments">
@@ -30,5 +31,13 @@ const analysisLabel = computed(() => ({ IDLE: 'ESPERANDO EVIDENCIA', PENDING: 'A
     <div class="panel-heading"><h3>{{ ugv.analysis.source === 'DF AI' ? 'DF AI / P1' : 'RESPALDO LOCAL' }}</h3><span class="tiny">{{ analysisLabel }}</span></div>
     <p>{{ ugv.analysis.result?.assessment || 'El detector acumula evidencia de forma independiente. DF AI analiza después; SafetyValidator valida cada acción.' }}</p>
     <span v-if="ugv.analysis.source === 'LOCAL'" class="signal-caption">Reglas determinísticas · no es una respuesta de DF AI</span>
+  </section>
+  <section class="side-panel sensor-history">
+    <div class="history-heading"><span>VELOCIDAD / HISTORIAL RECIENTE</span><span><i class="gps-key"/> GPS <i class="imu-key"/> IMU <i class="can-key"/> CAN</span></div>
+    <svg viewBox="0 0 800 180" role="img" aria-label="Historial comparado de velocidades GPS, IMU y CAN">
+      <path d="M30 20V160H780M30 90H780" fill="none" stroke="#283c36"/>
+      <polyline v-for="[key,color] in [['gps','#8dd4bd'],['imu','#86b9ef'],['can','#fa8855']]" :key="key" :points="plot(key)" fill="none" :stroke="color" stroke-width="2" :stroke-dasharray="key === 'imu' ? '6 4' : undefined"/>
+    </svg>
+    <p class="ugv-motto">Una señal válida no necesariamente contiene información confiable.</p>
   </section>
 </template>

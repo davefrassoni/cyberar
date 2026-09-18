@@ -20,7 +20,6 @@ import EventLog from "./events/EventLog.vue";
 import DemoControls from "./demo/DemoControls.vue";
 import ScenarioControls from "./scenario/ScenarioControls.vue";
 import UGVPanel from "./ugv/UGVPanel.vue";
-import UGVView from "./ugv/UGVView.vue";
 const activeAsset = ref("UAV");
 const activeDrone = ref(0);
 const showDebrief = ref(false);
@@ -181,9 +180,8 @@ onMounted(bootstrap);
         <span class="eyebrow">DRON ACTIVO</span>
         <button v-for="(drone, i) in store.state.drones" :key="drone.id" :class="{ selected: activeDrone === i }" :aria-pressed="activeDrone === i" @click="activeDrone = i">{{ drone.id }}</button>
       </nav>
-      <div :class="['workspace', { 'ugv-workspace': activeAsset === 'UGV' }]">
-        <TacticalMap v-if="activeAsset === 'UAV'" :state="store.state" @select-ugv="activeAsset = 'UGV'" @select-drone="(i) => (activeDrone = i)" />
-        <UGVView v-else-if="store.state.ugv && store.state.scenario_meta?.has_ugv" :state="store.state" />
+      <div class="workspace">
+        <TacticalMap :state="store.state" @select-ugv="activeAsset = 'UGV'" @select-drone="(i) => { activeAsset = 'UAV'; activeDrone = i; }" />
         <aside v-if="activeAsset === 'UAV'">
           <TelemetryPanel :telemetry="store.state.drones[activeDrone] || store.state.drones[0]" /><CommsPanel
             :state="store.state"

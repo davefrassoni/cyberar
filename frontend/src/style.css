@@ -2026,13 +2026,7 @@ aside {
 .asset-tabs .eyebrow { margin-right: 10px; }
 .asset-tabs button { min-height: 42px; }
 .asset-tabs small { margin-left: 12px; color: var(--green); font-size: 8px; }
-.ugv-view { min-width: 0; min-height: 0; display: flex; flex-direction: column; border-left: 1px solid var(--border); }
-.ground-scene { flex: 1; min-height: 170px; overflow: hidden; }
-.ground-scene > svg { width: 100%; height: 100%; display: block; }
-.ground-vehicle { transition: transform var(--travel-duration, 1s) linear; }
-.ugv-radar.moving { animation: radar-breath 3s ease-in-out infinite; }
-.sensor-history { padding: 8px 18px 0; border-top: 1px solid var(--border); }
-.sensor-history svg { width: 100%; height: 90px; display: block; }
+.sensor-history svg { width: 100%; height: 90px; display: block; margin-top: 10px; }
 .history-heading { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 8px; color: #8eaa9b; }
 .history-heading i { display: inline-block; width: 12px; height: 2px; margin: 0 4px 3px 10px; background: #8dd4bd; }
 .history-heading .imu-key { background: #86b9ef; }.history-heading .can-key { background: #fa8855; }
@@ -2056,10 +2050,9 @@ aside {
 .ugv-analysis p { font-size: 10px; line-height: 1.9; margin-bottom: 10px; }
 .resilience-summary { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; padding: 20px; border: 1px solid #365549; background: #0f1d18; margin-top: 16px; }
 .resilience-summary span { display: block; font-size: 8px; color: #95aa9b; margin-bottom: 8px; }.resilience-summary b { font-size: 11px; color: var(--green); }.resilience-summary p { grid-column: 1/-1; font-size: 9px; line-height: 1.8; color: #adc4b4; }
-@media (min-width: 801px) { .workspace { height: clamp(320px, calc(100dvh - 490px), 850px); }.ugv-workspace { min-height: 420px; } }
-@media (max-width: 800px) { .ugv-view { min-height: 490px; }.ground-scene { min-height: 290px; }.ugv-workspace aside { display: flex; }.asset-tabs small { display: block; margin: 6px 0 0; }.resilience-summary { grid-template-columns: 1fr; } }
+@media (min-width: 801px) { .workspace { height: clamp(320px, calc(100dvh - 490px), 850px); } }
+@media (max-width: 800px) { .asset-tabs small { display: block; margin: 6px 0 0; }.resilience-summary { grid-template-columns: 1fr; } }
 @media (max-width: 480px) { .asset-tabs { display: grid; grid-template-columns: 1fr 1fr; }.asset-tabs .eyebrow { grid-column: 1/-1; }.ugv-motto { font-size: 9px; } }
-@media (prefers-reduced-motion: reduce) { .ground-vehicle { transition: none; }.ugv-radar { animation: none; } }
 .can-frame { padding: 9px 0; border-bottom: 1px solid var(--border); }.can-frame b, .can-frame span, .can-frame small { display: block; }.can-frame b { color: #bfd5c7; font-weight: 400; }.can-frame small { color: #80988b; }
 
 /* Cabina de control manual: video + HUD ilustrativo, sin control real del motor. */
